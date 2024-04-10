@@ -30,7 +30,7 @@ data class ScheduleDate(
 // 1:N, a user has many workouts (in a workout plan)
 @Entity(tableName = "workouts")
 data class Workout(
-    @PrimaryKey(autoGenerate = true) val workoutId: Long = 0,
+    @PrimaryKey val workoutId: Long,
     var workoutName: String,
     var description: String,
     val listOrder: Int // should be a primary key?
@@ -41,7 +41,7 @@ data class Workout(
 // 1:N, a user has many exercises to choose from
 @Entity(tableName = "exercises")
 data class Exercise(
-    @PrimaryKey(autoGenerate = true) val exerciseId: Long = 0,
+    @PrimaryKey val exerciseId: Long,
     val exerciseName: String,
     val equipment: Equipment,
     val muscleGroup: MuscleGroup
@@ -74,16 +74,21 @@ data class WorkoutExercise(
     val workoutId: Long,
     @ColumnInfo(index = true)
     val exerciseId: Long,
-    @Embedded(prefix = "exercise_") // or could user exerciseId, but harder to query later
-    val exercise: Exercise,
     val sets: Int,
     val reps: Int,
     val weight: Double,
     val breakTime: Int, // ex. 30.seconds, needed TypeConverter
     val listOrder: Int
-){
-    constructor() : this(0, 0, 0, Exercise(0,"", Equipment.MACHINE, MuscleGroup.CHEST), 0, 0, 0.0, 0, 0)
-}
+)
+
+data class WorkoutExerciseComplete(
+    @Embedded val workoutExercise: WorkoutExercise,
+    @Relation(
+        parentColumn = "exerciseId",
+        entityColumn = "exerciseId"
+    )
+    val exercise: Exercise
+)
 
 // Workouts with a list of exercises and a list of dates
 // Embedded for efficient querying
@@ -92,8 +97,9 @@ data class WorkoutPlan(
     @Relation(
         parentColumn = "workoutId",
         entityColumn = "workoutId",
+        entity = WorkoutExercise::class
     )
-    var exercises: List<WorkoutExercise>, // 1:N, each workout has many exercises
+    var exercises: List<WorkoutExerciseComplete>, // 1:N, each workout has many exercises
 )
 
 // 1:N, a user has many workout dates (instances) in their history

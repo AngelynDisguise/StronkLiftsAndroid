@@ -8,12 +8,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.R
 import com.example.project2_adomingo.database.Exercise
 import com.example.project2_adomingo.database.WorkoutExercise
+import com.example.project2_adomingo.database.WorkoutExerciseComplete
 
-class ExerciseListAdapter(private val exercises: List<WorkoutExercise>) :
+class ExerciseListAdapter(private val exercises: List<WorkoutExerciseComplete>) :
     RecyclerView.Adapter<ExerciseListAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.exercise_name)
+        val exerciseSetsXReps: TextView = view.findViewById(R.id.exercise_setxXreps)
     }
 
     override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder {
@@ -23,8 +25,16 @@ class ExerciseListAdapter(private val exercises: List<WorkoutExercise>) :
     }
 
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
+        val currentWorkoutExercise: WorkoutExercise = exercises[position].workoutExercise
         val currentExercise: Exercise = exercises[position].exercise
+
         viewHolder.exerciseName.text = currentExercise.exerciseName
+
+        val sets = currentWorkoutExercise.sets
+        val reps = currentWorkoutExercise.reps
+        val weight = currentWorkoutExercise.weight.toInt()
+        val setsXRepsText = "${sets}x${reps} ${weight}lb"
+        viewHolder.exerciseSetsXReps.text = setsXRepsText
     }
 
     override fun getItemCount(): Int {

@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.R
 import com.example.project2_adomingo.database.ScheduleDate
 import com.example.project2_adomingo.database.WorkoutExercise
+import com.example.project2_adomingo.database.WorkoutExerciseComplete
 import com.example.project2_adomingo.database.WorkoutPlan
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -26,7 +27,7 @@ class HomeWorkoutListAdapter(private var workoutList: List<WorkoutPlan>, private
         val homeWorkoutDate: TextView = view.findViewById(R.id.home_workout_date)
 
         private val homeExerciseList: RecyclerView = view.findViewById(R.id.exercise_recycler_view)
-        fun bind(result: List<WorkoutExercise>) {
+        fun bind(result: List<WorkoutExerciseComplete>) {
             val exerciseListAdapter = ExerciseListAdapter(result)
             homeExerciseList.adapter = exerciseListAdapter
         }

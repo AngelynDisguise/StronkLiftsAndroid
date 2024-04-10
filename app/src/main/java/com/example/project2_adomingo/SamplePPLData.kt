@@ -7,6 +7,7 @@ import com.example.project2_adomingo.database.ScheduleDate
 import com.example.project2_adomingo.database.User
 import com.example.project2_adomingo.database.Workout
 import com.example.project2_adomingo.database.WorkoutExercise
+import com.example.project2_adomingo.database.WorkoutExerciseComplete
 import com.example.project2_adomingo.database.WorkoutPlan
 import java.time.DayOfWeek
 import kotlin.time.Duration.Companion.seconds
@@ -132,7 +133,6 @@ val pushWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 0,
         workoutId = 0,
         exerciseId = pushExercises[0].exerciseId,
-        exercise = pushExercises[0],
         sets = 4,
         reps = 10, // 6-10
         weight = 135.0,
@@ -143,7 +143,6 @@ val pushWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 1,
         workoutId = 0,
         exerciseId = pushExercises[1].exerciseId,
-        exercise = pushExercises[1],
         sets = 3,
         reps = 12, // 10-12
         weight = 50.0,
@@ -154,7 +153,6 @@ val pushWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 2,
         workoutId = 0,
         exerciseId = pushExercises[2].exerciseId,
-        exercise = pushExercises[2],
         sets = 3,
         reps = 15, // 12-15
         weight = 100.0,
@@ -168,7 +166,6 @@ val pullWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 3,
         workoutId = 1,
         exerciseId = pullExercises[0].exerciseId,
-        exercise = pullExercises[0],
         sets = 3,
         reps = 8, // 6-8
         weight = 135.0,
@@ -179,7 +176,6 @@ val pullWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 4,
         workoutId = 1,
         exerciseId = pullExercises[1].exerciseId,
-        exercise = pullExercises[1],
         sets = 3,
         reps = 10, // 8-10
         weight = 120.0,
@@ -190,7 +186,6 @@ val pullWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 5,
         workoutId = 1,
         exerciseId = pullExercises[2].exerciseId,
-        exercise = pullExercises[2],
         sets = 2,
         reps = 15, // 12-15
         weight = 75.0,
@@ -204,7 +199,6 @@ val legWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 6,
         workoutId = 2,
         exerciseId = legExercises[0].exerciseId,
-        exercise = legExercises[0],
         sets = 3,
         reps = 8, // 6-8
         weight = 135.0,
@@ -215,7 +209,6 @@ val legWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 7,
         workoutId = 2,
         exerciseId = legExercises[1].exerciseId,
-        exercise = legExercises[1],
         sets = 3,
         reps = 12, // 10-12
         weight = 135.0,
@@ -226,7 +219,6 @@ val legWorkoutExercises: List<WorkoutExercise> = listOf(
         workoutExerciseId = 8,
         workoutId = 2,
         exerciseId = legExercises[2].exerciseId,
-        exercise = legExercises[2],
         sets = 3,
         reps = 10, // 8-10
         weight = 135.0,
@@ -235,17 +227,62 @@ val legWorkoutExercises: List<WorkoutExercise> = listOf(
     )
 )
 
+val pushWorkoutExercisesComplete: List<WorkoutExerciseComplete> = listOf(
+    WorkoutExerciseComplete(
+        workoutExercise = pushWorkoutExercises[0],
+        exercise = pushExercises[0]
+    ),
+    WorkoutExerciseComplete(
+        workoutExercise = pushWorkoutExercises[1],
+        exercise = pushExercises[1]
+    ),
+    WorkoutExerciseComplete(
+        workoutExercise = pushWorkoutExercises[2],
+        exercise = pushExercises[2]
+    )
+)
+
+val pullWorkoutExercisesComplete: List<WorkoutExerciseComplete> = listOf(
+    WorkoutExerciseComplete(
+        workoutExercise = pullWorkoutExercises[0],
+        exercise = pullExercises[0]
+    ),
+    WorkoutExerciseComplete(
+        workoutExercise = pullWorkoutExercises[1],
+        exercise = pullExercises[1]
+    ),
+    WorkoutExerciseComplete(
+        workoutExercise = pullWorkoutExercises[2],
+        exercise = pullExercises[2]
+    )
+)
+
+val legWorkoutExercisesComplete: List<WorkoutExerciseComplete> = listOf(
+    WorkoutExerciseComplete(
+        workoutExercise = legWorkoutExercises[0],
+        exercise = legExercises[0]
+    ),
+    WorkoutExerciseComplete(
+        workoutExercise = legWorkoutExercises[1],
+        exercise = legExercises[1]
+    ),
+    WorkoutExerciseComplete(
+        workoutExercise = pushWorkoutExercises[2],
+        exercise = legExercises[2]
+    )
+)
+
 val PPLWorkoutPlans: List<WorkoutPlan> = listOf(
     WorkoutPlan(
         workout = PPLWorkouts[0],
-        exercises = pushWorkoutExercises
+        exercises = pushWorkoutExercisesComplete
     ),
     WorkoutPlan(
         workout = PPLWorkouts[1],
-        exercises = pullWorkoutExercises
+        exercises = pullWorkoutExercisesComplete
     ),
     WorkoutPlan(
         workout = PPLWorkouts[2],
-        exercises = legWorkoutExercises
+        exercises = legWorkoutExercisesComplete
     )
 )

@@ -1,8 +1,10 @@
 package com.example.project2_adomingo.viewModels
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.project2_adomingo.PPLSchedule
 import com.example.project2_adomingo.PPLWorkoutPlans
@@ -29,7 +31,7 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
     private val stronkLiftsDao: StronkLiftsDao
 
     // USER DATA
-    var user: LiveData<User>? = null
+    var user: User? = null
     var workoutPlans: LiveData<List<WorkoutPlan>>? = null
     var workoutSchedule: LiveData<List<ScheduleDate>>? = null
 
@@ -39,6 +41,11 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
     init {
         // Connect to database
          stronkLiftsDao = StronkLiftsDatabase.getDatabase(application).stronkLiftsDao()
+
+        Log.d(
+            "HomeViewModel",
+            "Connected to Room DB"
+        )
 
         // Load user data - if user doesn't exist, seed database before loading
         loadUserData()
@@ -51,11 +58,21 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
             val noDataInDatabase = stronkLiftsDao.getUserCount() == 0
 
             if (noDataInDatabase) {
+                Log.d(
+                    "HomeViewModel",
+                    "No Users found, seeding DB..."
+                )
+
                 // Set user
                 stronkLiftsDao.insertUser(defaultUser)
 
                 // Set PPL Schedule
                 stronkLiftsDao.insertSchedule(PPLSchedule)
+
+                // Set PPL Workout Data
+                PPLWorkouts.forEach {
+                    stronkLiftsDao.insertWorkout(it)
+                }
 
                 // Set PPL Exercises Data
                 val exerciseDataSet = listOf(pushExercises, pullExercises, legExercises)
@@ -65,20 +82,19 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
                     }
                 }
 
-                // Set PPL Workout Data
-                PPLWorkouts.forEach {
-                    stronkLiftsDao.insertWorkout(it)
-                }
-
                 // Set PPL Workout Exercises Data
                 val workoutExerciseDataSet =
                     listOf(pushWorkoutExercises, pullWorkoutExercises, legWorkoutExercises)
                 workoutExerciseDataSet.forEach { workoutExerciseList ->
                     workoutExerciseList.forEach {
                         stronkLiftsDao.insertWorkoutExercise(it)
-                        //println(it)
                     }
                 }
+
+                Log.d(
+                    "HomeViewModel",
+                    "Seeding DB done"
+                )
             }
 
             // Get user
@@ -92,6 +108,11 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
 
             // Load workout queue (get the next three workouts to do)
             workoutQueue = workoutPlans!!.value?.take(3)
+
+            Log.d(
+                "HomeViewModel",
+                "Got Data from DB:\nuser = ${user}\nworkoutSchedule = ${workoutSchedule!!.value}\nworkoutPlans = ${workoutPlans!!.value}s\nworkoutQueue = ${workoutQueue}"
+            )
         }
     }
 

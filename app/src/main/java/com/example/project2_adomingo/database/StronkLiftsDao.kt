@@ -42,30 +42,6 @@ interface StronkLiftsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkoutExercise(workoutExercise: WorkoutExercise)
 
-    // Insert a workout plan, and the embedded workout
-//    @Insert(onConflict = OnConflictStrategy.REPLACE)
-//    suspend fun insertWorkoutPlan(workoutPlan: WorkoutPlan)
-
-    // Add a workout plan along with all the associated entities
-    // Added to end of list
-//    @Transaction
-//    suspend fun insertWorkoutPlanWithDetails(workoutPlan: WorkoutPlan) {
-//        val workoutId = workoutPlan.workout.workoutId
-//
-//        // TODO: Ensure list order is at the end
-//
-//        // Insert Workout
-//        insertWorkout(workoutPlan.workout)
-//
-//        // Insert WorkoutExercise (workoutId and exerciseId should exist)
-//        for (exercise in workoutPlan.exercises) {
-//            insertWorkoutExercise(exercise)
-//        }
-//
-//        // Insert WorkoutPlan
-//        insertWorkoutPlan(workoutPlan.copy(workout = workoutPlan.workout.copy(workoutId = workoutId)))
-//    }
-
     // EXERCISE
     @Insert(onConflict = OnConflictStrategy.IGNORE) // prevent overwrite
     suspend fun insertExercise(exercise: Exercise)
@@ -87,11 +63,11 @@ interface StronkLiftsDao {
 
     // Get user info (only one anon user exists)
     @Query("SELECT * FROM users LIMIT 1")
-    fun getUser(): LiveData<User>
+    suspend fun getUser(): User
 
     // Get user count - should be 1
     @Query("SELECT COUNT(*) FROM users")
-    fun getUserCount(): Int
+    suspend fun getUserCount(): Int
 
     // WORKOUT PLAN
 
@@ -105,7 +81,7 @@ interface StronkLiftsDao {
     fun getAllWorkoutPlans(): LiveData<List<WorkoutPlan>> {
         val workoutPlans: List<WorkoutPlan> = _getAllWorkoutPlans()
         workoutPlans.forEach { workoutPlan ->
-            workoutPlan.exercises = workoutPlan.exercises.sortedBy { it.listOrder }
+            workoutPlan.exercises = workoutPlan.exercises.sortedBy { it.workoutExercise.listOrder }
         }
         return MutableLiveData(workoutPlans) // LiveData is abstract???
     }
@@ -117,8 +93,8 @@ interface StronkLiftsDao {
     //Get all workout exercises in a workout plan
     @Suppress("FunctionName") // ignore the underscore
     @Transaction
-    suspend fun _getAllSortedWorkoutExercises(workoutId: Long): List<WorkoutExercise> {
-        return getWorkoutPlan(workoutId).exercises.sortedBy { it.listOrder }
+    suspend fun _getAllSortedWorkoutExercises(workoutId: Long): List<WorkoutExerciseComplete> {
+        return getWorkoutPlan(workoutId).exercises.sortedBy { it.workoutExercise.listOrder }
     }
 
     // Get all workout exercise names from a workout plan

@@ -35,22 +35,47 @@ class HomeActivity : AppCompatActivity() {
             insets
         }
 
+        homeViewModel = HomeViewModel(application)
+
+        if(homeViewModel.workoutPlans != null || homeViewModel.workoutSchedule != null) {
+            workoutPlans = homeViewModel.workoutPlans?.value!!
+            workoutSchedule = homeViewModel.workoutSchedule?.value!!
+
+            Log.d(
+                "HomeActivity",
+                "Loaded Workout Plans Data HomeViewModel: \n$workoutPlans\n$workoutSchedule"
+            )
+        }
+
         // Setup RecyclerView and List Adapters
         //homeWorkoutListAdapter = HomeWorkoutListAdapter(PPLWorkoutPlans, PPLSchedule)
-        homeWorkoutListAdapter = HomeWorkoutListAdapter(emptyList(), emptyList())
+        homeWorkoutListAdapter = HomeWorkoutListAdapter(workoutPlans, workoutSchedule)
 
         val homeRecyclerView: RecyclerView = findViewById(R.id.home_recycler_view)
         homeRecyclerView.adapter = homeWorkoutListAdapter
 
+        Log.d(
+            "HomeActivity",
+            "Home List Adapters Set"
+        )
+
         // Observe Workout LiveData from HomeViewModel
-        homeViewModel = HomeViewModel(application)
+
 
         homeViewModel.workoutPlans?.observe(this) { newWorkoutPlans ->
             homeWorkoutListAdapter.updateWorkoutPlans(newWorkoutPlans)
+            Log.d(
+                "HomeActivity",
+                "Loaded Workout Plans Data from DB: $newWorkoutPlans\n"
+            )
         }
 
         homeViewModel.workoutSchedule?.observe(this) { newWorkoutSchedule ->
             homeWorkoutListAdapter.updateWorkoutSchedule(newWorkoutSchedule)
+            Log.d(
+                "HomeActivity",
+                "Loaded Workout Plans Data from DB: $newWorkoutSchedule\n"
+            )
         }
     }
 }
