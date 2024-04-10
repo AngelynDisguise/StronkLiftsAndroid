@@ -60,12 +60,18 @@ class HomeWorkoutListAdapter(private var workoutList: List<WorkoutPlan>, private
 
         // Embedded list of exercises
         viewHolder.bind(currentWorkout.exercises)
+
+        // Make each Workout Card clickable
+        viewHolder.itemView.setOnClickListener {
+            onClickListener?.invoke(position)
+        }
+
     }
 
     // OnClick listeners to bind
-//    fun setOnClickListener(listener: (Int) -> Unit) {
-//        this.onClickListener = listenergetDateOfNextWorkout()
-//    }
+    fun setOnClickListener(listener: (Int) -> Unit) {
+        this.onClickListener = listener
+    }
 
     // Layout manager returns the size of dataset
     override fun getItemCount() = workoutList.size

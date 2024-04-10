@@ -20,7 +20,8 @@
             android:background="@drawable/nav_button"
             android:text="Home"
             android:textSize="12sp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:onClick="onClickHome"/>
 
         <Button
             android:id="@+id/plan_button"
@@ -29,7 +30,8 @@
             android:background="@drawable/nav_button"
             android:text="Plan"
             android:textSize="12sp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:onClick="onClickPlan"/>
 
         <Button
             android:id="@+id/history_button"
@@ -38,7 +40,8 @@
             android:background="@drawable/nav_button"
             android:text="History"
             android:textSize="12sp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:onClick="onClickHistory"/>
     </RadioGroup>
 
 </LinearLayout>

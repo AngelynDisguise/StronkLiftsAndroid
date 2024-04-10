@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="10dp">
+
+    <LinearLayout
+        android:id="@+id/exercise_header_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginHorizontal="10dp"
+        android:orientation="horizontal">
+
+            <!-- Exercise Name -->
+            <TextView
+                android:id="@+id/exercise_row_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Exercise"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="16sp" />
+
+            <!-- Exercise Info -->
+        <Button
+            android:id="@+id/workout_setsXReps_weight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:text="stsxreps weightlb >>"
+            android:textColor="#c30000"
+            android:textSize="12sp"
+            android:onClick="onClickHome"/>
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+    android:id="@+id/workout_exercise_recycler_view"
+    android:layout_width="wrap_content"
+    android:layout_height="0dp"
+    app:layoutManager="LinearLayoutManager"
+        android:orientation="horizontal"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintTop_toBottomOf="@+id/exercise_header_row"
+    app:layout_constraintHorizontal_bias="0.5"
+        android:layout_marginHorizontal="10dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

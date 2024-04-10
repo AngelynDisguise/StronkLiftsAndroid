@@ -37,6 +37,7 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
 
     // HOME UI
     var workoutQueue: List<WorkoutPlan>? = null // workout cards
+    var startedWorkout: Boolean = false
 
     init {
         // Connect to database
