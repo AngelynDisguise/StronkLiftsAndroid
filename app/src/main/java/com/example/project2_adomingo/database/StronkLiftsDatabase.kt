@@ -6,9 +6,19 @@ import androidx.room.Embedded
 import androidx.room.Relation
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 // Room Database class
-@Database(entities = [Exercise::class, Workout::class], version = 14)
+@Database(entities = [
+    User::class,
+    ScheduleDate::class,
+    Workout::class,
+    Exercise::class,
+    WorkoutExercise::class,
+//    WorkoutHistoryDate::class,
+//    ExerciseHistory::class
+                     ], version = 14)
+@TypeConverters(Converters::class)
 abstract class StronkLiftsDatabase : RoomDatabase() {
     abstract fun stronkLiftsDao(): StronkLiftsDao
 

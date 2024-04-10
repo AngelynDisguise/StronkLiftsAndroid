@@ -9,22 +9,22 @@ import com.example.project2_adomingo.R
 import com.example.project2_adomingo.database.Exercise
 import com.example.project2_adomingo.database.WorkoutExercise
 
-class ExerciseAdapter(private val exercises: List<WorkoutExercise>) :
-    RecyclerView.Adapter<ExerciseAdapter.ExerciseViewHolder>() {
+class ExerciseListAdapter(private val exercises: List<WorkoutExercise>) :
+    RecyclerView.Adapter<ExerciseListAdapter.ViewHolder>() {
 
-    inner class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(itemView) {
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.exercise_name)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExerciseViewHolder {
-        val itemView = LayoutInflater.from(parent.context)
-            .inflate(R.layout.exercise_row_item, parent, false)
-        return ExerciseViewHolder(itemView)
+    override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder {
+        val view = LayoutInflater.from(viewGroup.context)
+            .inflate(R.layout.exercise_row_item, viewGroup, false)
+        return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ExerciseViewHolder, position: Int) {
+    override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
         val currentExercise: Exercise = exercises[position].exercise
-        holder.exerciseName.text = currentExercise.exerciseName
+        viewHolder.exerciseName.text = currentExercise.exerciseName
     }
 
     override fun getItemCount(): Int {
