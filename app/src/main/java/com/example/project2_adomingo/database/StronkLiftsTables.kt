@@ -5,18 +5,30 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.Relation
 import androidx.room.TypeConverters
 import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlin.time.Duration
 
-// Only one user for right now (anonymous app)
-@Entity(tableName = "users")
+// Only one user for right now (anonymous user)
+// May or may not have a current workout going on for them
+@Entity(tableName = "users",
+    foreignKeys = [
+        ForeignKey(
+            entity = WorkoutHistory::class,
+            parentColumns = ["workoutHistoryId"],
+            childColumns = ["currentWorkoutHistoryId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ]
+)
 data class User(
     @PrimaryKey(autoGenerate = true) val userId: Long = 0,
-    var username: String = "user", // Should be a primary key?
-    val nextWorkoutIndex: Int = 0
+    var username: String = "user",
+    @ColumnInfo(index = true)
+    val currentWorkoutHistoryId: Long? = null // must persist even if workout plan is deleted
 )
 
 // 1:N, a user has many workout dates
@@ -30,9 +42,9 @@ data class ScheduleDate(
 // 1:N, a user has many workouts (in a workout plan)
 @Entity(tableName = "workouts")
 data class Workout(
-    @PrimaryKey val workoutId: Long,
+    @PrimaryKey(autoGenerate = true) val workoutId: Long,
     var workoutName: String,
-    var description: String,
+    //var description: String,
     val listOrder: Int // should be a primary key?
 
 )
@@ -41,7 +53,7 @@ data class Workout(
 // 1:N, a user has many exercises to choose from
 @Entity(tableName = "exercises")
 data class Exercise(
-    @PrimaryKey val exerciseId: Long,
+    @PrimaryKey(autoGenerate = true) val exerciseId: Long,
     val exerciseName: String,
     val equipment: Equipment,
     val muscleGroup: MuscleGroup
@@ -64,12 +76,11 @@ data class Exercise(
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
-    ],
-    primaryKeys = ["workoutExerciseId", "workoutId", "exerciseId"]
+    ]
 )
 //@TypeConverters(Converters::class)
 data class WorkoutExercise(
-    val workoutExerciseId: Long,
+    @PrimaryKey(autoGenerate = true) val workoutExerciseId: Long,
     @ColumnInfo(index = true)
     val workoutId: Long,
     @ColumnInfo(index = true)
@@ -91,7 +102,7 @@ data class WorkoutExerciseComplete(
 )
 
 // Workouts with a list of exercises and a list of dates
-// Embedded for efficient querying
+// Joined Workout and WorkoutExercise (joined with Exercise)
 data class WorkoutPlan(
     @Embedded val workout: Workout,
     @Relation(
@@ -103,51 +114,103 @@ data class WorkoutPlan(
 )
 
 // 1:N, a user has many workout dates (instances) in their history
-@Entity(tableName = "workout_history_dates")
+@Entity(tableName = "workout_history")
 @TypeConverters(Converters::class)
-data class WorkoutHistoryDate(
-    @PrimaryKey(autoGenerate = true) val workoutHistoryDateId: Long = 0,
-    val date: LocalDate // Needed TypeConverter
+data class WorkoutHistory(
+    @PrimaryKey(autoGenerate = true) val workoutHistoryId: Long = 0,
+    val date: LocalDate, // Needed TypeConverter
+    val workoutName: String
+
 )
 
 // 1:N, a user has many exercises in their workout sessions in history
 @Entity(tableName = "exercise_history",
     foreignKeys = [
         ForeignKey(
-            entity = WorkoutHistoryDate::class,
-            parentColumns = ["workoutHistoryDateId"],
-            childColumns = ["workoutHistoryDateId"],
-            onUpdate = ForeignKey.CASCADE,
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = Exercise::class,
-            parentColumns = ["workoutExerciseId"],
-            childColumns = ["workoutExerciseId"],
+            entity = WorkoutHistory::class,
+            parentColumns = ["workoutHistoryId"],
+            childColumns = ["workoutHistoryId"],
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
     ],
-    primaryKeys = ["exerciseHistoryId", "workoutHistoryDateId", "workoutExerciseId"]
+    //primaryKeys = ["exerciseHistoryId", "workoutHistoryId"]
 )
 data class ExerciseHistory(
-    val exerciseHistoryId: Long = 0,
-    val workoutHistoryDateId: Long,
-    val workoutExerciseId: Long
-    //@Embedded // easier join
-    //val workoutExercise: WorkoutExercise
+    @PrimaryKey(autoGenerate = true) val exerciseHistoryId: Long = 0,
+    @ColumnInfo(index = true)
+    val workoutHistoryId: Long,
+    // Copy of Workout Exercise (Plan) info
+    val exerciseName: String,
+    val sets: Int,
+    val reps: Int,
+    val weight: Double
 )
 
-// Workout History with workout date and exercise history
-// Embedded for efficient querying
-data class WorkoutHistory(
-    @Embedded val workout: WorkoutHistoryDate,
-    @Relation(
-        parentColumn = "workoutHistoryDateId",
-        entityColumn = "workoutHistoryDateId",
-    )
-    val exercises: List<ExerciseHistory>, // 1:N, each workout history had many exercise histories
+// 1:N, an exercise has a number of sets, each set a record number of reps
+@Entity(tableName = "exercise_set_history",
+    foreignKeys = [
+        ForeignKey(
+            entity = WorkoutHistory::class,
+            parentColumns = ["workoutHistoryId"],
+            childColumns = ["workoutHistoryId"],
+            onUpdate = ForeignKey.CASCADE,
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = ExerciseHistory::class,
+            parentColumns = ["exerciseHistoryId"],
+            childColumns = ["exerciseHistoryId"],
+            onUpdate = ForeignKey.CASCADE,
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["exerciseSetHistoryId", "setNumber"], // set order must be unique to set history
+        unique = true)],
+    //primaryKeys = ["exerciseSetHistoryId", "workoutHistoryId", "exerciseHistoryId"]
 )
+data class ExerciseSetHistory(
+    @PrimaryKey(autoGenerate = true)
+    val exerciseSetHistoryId: Long = 0,
+    val workoutHistoryId: Long,
+    val exerciseHistoryId: Long,
+    val setNumber: Int, // order by this
+    val repsDone: Int,
+)
+
+// Exercise History with a history of reps for each exercise set
+// Joined ExerciseHistory with ExerciseSetHistory
+data class ExerciseHistoryComplete(
+    @Embedded val exercise: ExerciseHistory,
+    @Relation(
+        parentColumn = "exerciseHistoryId",
+        entityColumn = "exerciseHistoryId"
+    )
+    val setsXreps: List<ExerciseSetHistory> // size of sets, need to order by set number
+)
+
+// Workout History with a history of exercises (no history of reps)
+// Joined WorkoutHistory with ExerciseHistory
+// Used for sending current workout to HomeActivity
+data class WorkoutHistoryPartial(
+    @Embedded val workout: WorkoutHistory,
+    @Relation(
+        parentColumn = "workoutHistoryId",
+        entityColumn = "workoutHistoryId",
+    )
+    val exercises: List<ExerciseHistory>, // 1:N, each workout history has many exercise histories
+)
+
+// Workout History with a history of exercises, with a history of reps in each set
+// Joined WorkoutHistory with ExerciseHistory (joined with ExerciseSetHistory)
+//data class WorkoutHistoryComplete(
+//    @Embedded val workout: WorkoutHistory,
+//    @Relation(
+//        parentColumn = "workoutHistoryId",
+//        entityColumn = "workoutHistoryId",
+//    )
+//    val exercises: List<ExerciseHistoryComplete>, // 1:N, each workout history had many exercise histories (with many rep histories)
+//)
 
 enum class Equipment(val type: String) {
     BARBELL("Barbell"),

@@ -1,45 +1,28 @@
-package com.example.project2_adomingo
+package com.example.project2_adomingo.database
 
-import com.example.project2_adomingo.database.Equipment
-import com.example.project2_adomingo.database.Exercise
-import com.example.project2_adomingo.database.MuscleGroup
-import com.example.project2_adomingo.database.ScheduleDate
-import com.example.project2_adomingo.database.User
-import com.example.project2_adomingo.database.Workout
-import com.example.project2_adomingo.database.WorkoutExercise
-import com.example.project2_adomingo.database.WorkoutExerciseComplete
-import com.example.project2_adomingo.database.WorkoutPlan
 import java.time.DayOfWeek
-import kotlin.time.Duration.Companion.seconds
 
 val defaultUser = User(
-    userId = 0,
     username = "user"
 )
 
 val PPLSchedule: List<ScheduleDate> = listOf(
     ScheduleDate(
-        dateId = 0,
         weekday = DayOfWeek.MONDAY
     ),
     ScheduleDate(
-        dateId = 1,
         weekday = DayOfWeek.TUESDAY
     ),
     ScheduleDate(
-        dateId = 2,
         weekday = DayOfWeek.WEDNESDAY
     ),
     ScheduleDate(
-        dateId = 3,
         weekday = DayOfWeek.THURSDAY
     ),
     ScheduleDate(
-        dateId = 4,
         weekday = DayOfWeek.FRIDAY
     ),
     ScheduleDate(
-        dateId = 5,
         weekday = DayOfWeek.SATURDAY
     )
 )
@@ -111,19 +94,19 @@ val PPLWorkouts: List<Workout> = listOf(
     Workout(
         workoutId = 0,
         workoutName = "Push",
-        description = "Chest, Shoulder and Triceps",
+        //description = "Chest, Shoulder and Triceps",
         listOrder = 0
     ),
     Workout(
         workoutId = 1,
         workoutName = "Pull",
-        description = "Back, Biceps, and Abs",
+        //description = "Back, Biceps, and Abs",
         listOrder = 1
     ),
     Workout(
         workoutId = 2,
         workoutName = "Leg",
-        description = "Quads, Hams, Glutes, and Calves",
+        //description = "Quads, Hams, Glutes, and Calves",
         listOrder = 2
     ),
 )

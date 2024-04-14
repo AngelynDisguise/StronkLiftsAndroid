@@ -61,8 +61,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/workout_header"
-        app:layout_constraintHorizontal_bias="0.5"
-        android:layout_margin="10dp"/>
+        app:layout_constraintHorizontal_bias="0.5"/>
 
 
     <!-- Note: Could make this into a row and add border (make it a footer) -->

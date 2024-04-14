@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/home_workout_card"
     android:layout_width="match_parent"
     android:layout_height="175dp"
     android:background="@drawable/home_workout_card_background"
@@ -38,13 +39,29 @@
 
     </LinearLayout>
 
-    <!-- Exercise RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/exercise_recycler_view"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layoutManager="LinearLayoutManager"
+        android:layout_height="match_parent"
         android:layout_below="@id/header_row_layout"
-        android:layout_marginTop="10dp" />
+        android:layout_marginTop="10dp"
+        android:clickable="true"
+        android:focusable="true" >
+
+        <!-- RecyclerView for exercises -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/exercise_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layoutManager="LinearLayoutManager" />
+
+        <!-- Transparent view to intercept clicks -->
+        <View
+            android:id="@+id/transparent_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent" />
+
+    </FrameLayout>
+
 
 </RelativeLayout>

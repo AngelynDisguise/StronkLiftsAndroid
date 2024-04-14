@@ -4,26 +4,23 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.project2_adomingo.PPLSchedule
-import com.example.project2_adomingo.PPLWorkoutPlans
-import com.example.project2_adomingo.PPLWorkouts
+import com.example.project2_adomingo.database.PPLSchedule
+import com.example.project2_adomingo.database.PPLWorkouts
 import com.example.project2_adomingo.database.ScheduleDate
 import com.example.project2_adomingo.database.StronkLiftsDao
 import com.example.project2_adomingo.database.StronkLiftsDatabase
 import com.example.project2_adomingo.database.User
 import com.example.project2_adomingo.database.WorkoutPlan
-import com.example.project2_adomingo.defaultUser
-import com.example.project2_adomingo.legExercises
-import com.example.project2_adomingo.legWorkoutExercises
-import com.example.project2_adomingo.pullExercises
-import com.example.project2_adomingo.pullWorkoutExercises
-import com.example.project2_adomingo.pushExercises
-import com.example.project2_adomingo.pushWorkoutExercises
+import com.example.project2_adomingo.database.defaultUser
+import com.example.project2_adomingo.database.legExercises
+import com.example.project2_adomingo.database.legWorkoutExercises
+import com.example.project2_adomingo.database.pullExercises
+import com.example.project2_adomingo.database.pullWorkoutExercises
+import com.example.project2_adomingo.database.pushExercises
+import com.example.project2_adomingo.database.pushWorkoutExercises
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class HomeViewModel(application: Application): AndroidViewModel(application) {
 
@@ -37,6 +34,16 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
 
     // HOME UI
     var workoutQueue: List<WorkoutPlan>? = null // workout cards
+
+    /*
+    startedWorkout will tell if a workout has started.
+    Meaning
+    - user's startedWorkoutId != null, AND that WorkoutHistory's date is today
+    - front of workoutQueue and top card is today's workout (derived from a WorkoutHistory)
+    - nextWorkoutIndex is at workoutQueue[1]
+    - if user chooses a different card other than today's workout, they need to cancel today's workout (remove the top card),
+
+     */
     var startedWorkout: Boolean = false
 
     init {
@@ -108,6 +115,16 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
             workoutPlans = stronkLiftsDao.getAllWorkoutPlans()
 
             // Load workout queue (get the next three workouts to do)
+            // Get current workout if one was started (goes in front of queue)
+//            if (user!!.currentWorkoutHistoryId != null) {
+//                // Get current workout
+//                val currentWorkout: WorkoutHistoryPartial = getWorkoutHistoryPartial(currentWorkoutId)
+//                val currentWorkoutPlan: WorkoutPlan = WorkoutPlan(
+//                    Workout(
+//
+//                    )
+//                )
+//            }
             workoutQueue = workoutPlans!!.value?.take(3)
 
             Log.d(

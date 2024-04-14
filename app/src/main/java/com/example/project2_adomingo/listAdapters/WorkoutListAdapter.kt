@@ -8,9 +8,12 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.R
+import com.example.project2_adomingo.database.ExerciseHistory
+import com.example.project2_adomingo.database.ExerciseHistoryComplete
 import org.json.JSONObject
 
-class WorkoutListAdapter(private var exercises: List<JSONObject>) :
+//class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryComplete>) :
+class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistory>) :
     RecyclerView.Adapter<WorkoutListAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         // Header row
@@ -33,21 +36,22 @@ class WorkoutListAdapter(private var exercises: List<JSONObject>) :
 
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
         val exercise = exercises[position]
-        val sets = exercise.getInt("sets")
-        val reps = exercise.getInt("reps")
-        val weight = exercise.getInt("weight") // originally Double
+        val name = exercise.exerciseName
+        val sets = exercise.sets
+        val reps = exercise.reps
+        val weight = exercise.weight // originally Double
 
         Log.d(
             "WorkoutListAdapter",
             "Inflated view with:\nexercise: $exercise"
         )
 
-        viewHolder.exerciseName.text = exercise.getString("name")
+        viewHolder.exerciseName.text = name
         val text = "${sets}x${reps} ${weight}lb  >>"
         viewHolder.setsXRepsWeight.text = text
 
         // Embedded list of sets/reps
-        val setsXreps = MutableList(sets) { reps }
+        val setsXreps = MutableList(sets) { reps } // Init a list of size sets, each element the number of reps
         viewHolder.bind(setsXreps)
     }
 

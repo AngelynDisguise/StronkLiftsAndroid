@@ -1,30 +1,22 @@
 package com.example.project2_adomingo
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Button
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.project2_adomingo.database.Equipment
-import com.example.project2_adomingo.database.Exercise
-import com.example.project2_adomingo.database.MuscleGroup
+import com.example.project2_adomingo.database.PPLSchedule
+import com.example.project2_adomingo.database.PPLWorkoutPlans
 import com.example.project2_adomingo.database.ScheduleDate
-import com.example.project2_adomingo.database.Workout
-import com.example.project2_adomingo.database.WorkoutExercise
 import com.example.project2_adomingo.database.WorkoutExerciseComplete
 import com.example.project2_adomingo.database.WorkoutPlan
 import com.example.project2_adomingo.listAdapters.HomeWorkoutListAdapter
 import com.example.project2_adomingo.viewModels.HomeViewModel
-import org.json.JSONArray
 import org.json.JSONObject
-import kotlin.time.Duration.Companion.seconds
 
 class HomeActivity : AppCompatActivity() {
     private lateinit var homeViewModel: HomeViewModel
@@ -32,7 +24,7 @@ class HomeActivity : AppCompatActivity() {
 
     private var workoutPlans: List<WorkoutPlan> = PPLWorkoutPlans
     private var workoutSchedule: List<ScheduleDate> = PPLSchedule
-    private var workoutQueue: List<WorkoutPlan> = workoutPlans.take(3)
+    //private var workoutQueue: Pair<WorkoutPlan, LocalDate>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +42,7 @@ class HomeActivity : AppCompatActivity() {
             workoutPlans = homeViewModel.workoutPlans?.value!!
             workoutSchedule = homeViewModel.workoutSchedule?.value!!
 
-            workoutQueue = workoutPlans.take(3)
+            //workoutQueue = workoutPlans.take(3)
 
             Log.d(
                 "HomeActivity",
@@ -60,7 +52,8 @@ class HomeActivity : AppCompatActivity() {
 
         // Setup RecyclerView and List Adapters
         //homeWorkoutListAdapter = HomeWorkoutListAdapter(PPLWorkoutPlans, PPLSchedule)
-        homeWorkoutListAdapter = HomeWorkoutListAdapter(workoutQueue, workoutSchedule)
+        homeWorkoutListAdapter = HomeWorkoutListAdapter(workoutPlans, workoutSchedule)
+        //homeWorkoutListAdapter = HomeWorkoutListAdapter(workoutQueue, workoutSchedule)
 
         val homeRecyclerView: RecyclerView = findViewById(R.id.home_recycler_view)
         homeRecyclerView.adapter = homeWorkoutListAdapter
@@ -71,7 +64,6 @@ class HomeActivity : AppCompatActivity() {
         )
 
         // Observe Workout LiveData from HomeViewModel
-
 
         homeViewModel.workoutPlans?.observe(this) { newWorkoutPlans ->
             homeWorkoutListAdapter.updateWorkoutPlans(newWorkoutPlans)
@@ -97,10 +89,13 @@ class HomeActivity : AppCompatActivity() {
 
         homeWorkoutListAdapter.setOnClickListener { position ->
             // Get Workout at position
-            val workout: WorkoutPlan = workoutQueue[position]
+            //val workout: WorkoutPlan = workoutQueue[position]
+            val workout: WorkoutPlan = workoutPlans[position]
+            val workoutId: Long = workout.workout.workoutId
             val workoutName: String = workout.workout.workoutName
             val workoutExercises: List<WorkoutExerciseComplete> = workout.exercises
 
+            //val projectedWorkoutDate
 
             val extraWorkoutExercises = ArrayList<String>()
             workoutExercises.forEach { it ->
@@ -114,6 +109,7 @@ class HomeActivity : AppCompatActivity() {
             }
 
             val intent = Intent(this, WorkoutActivity::class.java)
+            intent.putExtra("workoutId", workoutId)
             intent.putExtra("workoutName", workoutName)
             intent.putStringArrayListExtra("workoutExercises", extraWorkoutExercises)
             startActivity(intent)

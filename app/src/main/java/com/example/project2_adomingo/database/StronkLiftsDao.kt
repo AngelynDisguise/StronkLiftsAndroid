@@ -115,23 +115,23 @@ interface StronkLiftsDao {
     @Query("SELECT * FROM workouts ORDER BY listOrder DESC LIMIT 1")
     suspend fun getLastWorkout(): Workout
 
-//    // WORKOUT HISTORY
-//
-//    // Get workout history (has workout date and exercises)
+    // WORKOUT HISTORY
+
+    // Get workout history (has workout date and exercises)
 //    @Transaction
-//    @Query("SELECT * FROM workout_history_dates")
-//    fun getWorkoutHistory(): LiveData<List<WorkoutHistory>>
+//    @Query("SELECT * FROM workout_history")
+//    fun getWorkoutHistory(): LiveData<List<WorkoutHistoryComplete>>
 //
 //    // Get a workout from workout history
 //    // Assumption: User does one workout a day (each workout has only one date)
 //    // Note: Useful for getting today's workout session
 //    @Transaction
-//    @Query("SELECT * FROM workout_history_dates WHERE date = :date")
-//    suspend fun getWorkoutFromHistory(date: LocalDate): WorkoutHistory
+//    @Query("SELECT * FROM workout_history WHERE workoutHistoryId = :workoutHistoryId")
+//    suspend fun getWorkoutFromHistory(workoutHistoryId: Long): WorkoutHistoryComplete
 //
 //    @Transaction
-//    @Query("SELECT * FROM workout_history_dates WHERE date = :today")
-//    suspend fun getTodaysWorkout(today: LocalDate = LocalDate.now()): WorkoutHistory
+//    @Query("SELECT * FROM workout_history WHERE date = :today")
+//    suspend fun getTodaysWorkout(today: LocalDate = LocalDate.now()): WorkoutHistoryComplete
 
     // EXERCISES
 
@@ -179,6 +179,22 @@ interface StronkLiftsDao {
 //        }
 //    }
 
+    // WORKOUT HISTORY
+
+    //@Update
+    //suspend fun updateWorkoutHistoryDate(workoutHistoryDate: WorkoutHistoryDate)
+
+//    @Update
+//    suspend fun updateExerciseHistory(exerciseHistory: ExerciseHistory)
+
+    //@Transaction
+//    suspend fun updateWorkoutHistory(workoutHistory: WorkoutHistory) {
+//        updateWorkoutHistoryDate(workoutHistory.workout)
+//        workoutHistory.exercises.forEach {
+//            updateExerciseHistory(it)
+//        }
+//    }
+
     // EXERCISE
 
     // Update an exercise
@@ -218,6 +234,22 @@ interface StronkLiftsDao {
 //    suspend fun deleteWorkoutPlan(workoutId: Long) {
 //        deleteAllWorkoutExercises(workoutId)
 //        deleteWorkout(workoutId)
+//    }
+
+    // WORKOUT HISTORY
+
+//    @Delete
+//    suspend fun deleteWorkoutHistoryDate(workoutHistoryDate: WorkoutHistoryDate)
+
+    @Delete
+    suspend fun deleteExerciseHistory(exerciseHistory: ExerciseHistory)
+
+//    @Transaction
+//    suspend fun deleteWorkoutHistory(workoutHistory: WorkoutHistory) {
+//        deleteWorkoutHistoryDate(workoutHistory.workout)
+//        workoutHistory.exercises.forEach {
+//            deleteExerciseHistory(it)
+//        }
 //    }
 
     // EXERCISE

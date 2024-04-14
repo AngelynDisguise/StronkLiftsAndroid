@@ -3,6 +3,7 @@ package com.example.project2_adomingo.listAdapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.R
@@ -27,9 +28,19 @@ class HomeWorkoutListAdapter(private var workoutList: List<WorkoutPlan>, private
         val homeWorkoutDate: TextView = view.findViewById(R.id.home_workout_date)
 
         private val homeExerciseList: RecyclerView = view.findViewById(R.id.exercise_recycler_view)
-        fun bind(result: List<WorkoutExerciseComplete>) {
+        private val transparentView: View = view.findViewById(R.id.transparent_view)
+
+        fun bind(result: List<WorkoutExerciseComplete>, listener: ((Int) -> Unit)?) {
             val exerciseListAdapter = ExerciseListAdapter(result)
             homeExerciseList.adapter = exerciseListAdapter
+
+            // Make whole view clickable
+            itemView.setOnClickListener {
+                listener?.invoke(adapterPosition)
+            }
+            transparentView.setOnClickListener {
+                listener?.invoke(adapterPosition)
+            }
         }
     }
 
@@ -59,12 +70,12 @@ class HomeWorkoutListAdapter(private var workoutList: List<WorkoutPlan>, private
         viewHolder.homeWorkoutDate.text = nextWorkoutDates[position]
 
         // Embedded list of exercises
-        viewHolder.bind(currentWorkout.exercises)
+        viewHolder.bind(currentWorkout.exercises, this.onClickListener)
 
-        // Make each Workout Card clickable
-        viewHolder.itemView.setOnClickListener {
-            onClickListener?.invoke(position)
-        }
+//        // Make each Workout Card clickable
+//        viewHolder.itemView.setOnClickListener {
+//            onClickListener?.invoke(position)
+//        }
 
     }
 
@@ -76,7 +87,7 @@ class HomeWorkoutListAdapter(private var workoutList: List<WorkoutPlan>, private
     // Layout manager returns the size of dataset
     override fun getItemCount() = workoutList.size
 
-    private fun getNextWorkoutDates(): List<String> {
+    fun getNextWorkoutDates(): List<String> {
         val today: LocalDate = LocalDate.now() // (e.g. 2024-04-08)
         var currentDate: LocalDate = today
         var currentDayOfWeek: DayOfWeek = today.dayOfWeek // (e.g. Monday, value = 1; Sunday, value = 7)

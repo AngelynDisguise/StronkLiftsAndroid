@@ -15,8 +15,9 @@ import androidx.room.TypeConverters
     Workout::class,
     Exercise::class,
     WorkoutExercise::class,
-//    WorkoutHistoryDate::class,
-//    ExerciseHistory::class
+    WorkoutHistory::class,
+    ExerciseHistory::class,
+    ExerciseSetHistory::class,
                      ], version = 14)
 @TypeConverters(Converters::class)
 abstract class StronkLiftsDatabase : RoomDatabase() {
