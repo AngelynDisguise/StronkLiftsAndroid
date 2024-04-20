@@ -11,6 +11,7 @@ import com.example.project2_adomingo.database.Equipment
 import com.example.project2_adomingo.database.Exercise
 import com.example.project2_adomingo.database.MuscleGroup
 import com.example.project2_adomingo.database.PPLSchedule
+import com.example.project2_adomingo.database.PPLWorkoutPlans
 import com.example.project2_adomingo.database.PPLWorkouts
 import com.example.project2_adomingo.database.ScheduleDate
 import com.example.project2_adomingo.database.StronkLiftsDao
@@ -30,6 +31,7 @@ import com.example.project2_adomingo.database.pullWorkoutExercises
 import com.example.project2_adomingo.database.pushExercises
 import com.example.project2_adomingo.database.pushWorkoutExercises
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -57,7 +59,7 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
     lateinit var workoutDates: List<LocalDate>
 
     /* Live data to fetch data needed to create workout queue */
-    var liveHomeData: MutableLiveData<Map<String, Any>> = MutableLiveData(emptyMap())
+    var liveHomeData: MutableLiveData<Map<String, Any>?> = MutableLiveData(emptyMap())
 
     /* Live data to update Recycler View*/
     var liveWorkoutQueue: MutableLiveData<List<Pair<WorkoutPlan, LocalDate>>> = MutableLiveData(
@@ -73,20 +75,34 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
         )
 
         // Load user data - if user doesn't exist, seed database before loading
-        loadUserData()
+        viewModelScope.launch(Dispatchers.IO) {
+            initUserData()
+        }
+
     }
 
     // If no user exists, load default user info, PPL data, and schedule
     // Called onCreate and on activity result callback (onResume)
-    private fun loadUserData() {
-        viewModelScope.launch(Dispatchers.IO) {
+    private suspend fun initUserData() {
             // Fresh start?
             if (!loggedIn) {
+                Log.d(
+                    "HomeViewModel",
+                    "User not logged into app, fetching data from DB..."
+                )
+
                 // Fetch data from DB
-                liveHomeData.postValue(stronkLiftsDao.getHomeActivityData(DEFAULT_USER_ID))
+                val result: Map<String, Any>? = stronkLiftsDao.getHomeActivityData(DEFAULT_USER_ID)
+
+                // Commit results to LiveHomeData
+                liveHomeData.postValue(result)
                 loggedIn = true
             }
-        }
+
+            Log.d(
+                "HomeViewModel",
+                "User already logged into app, fetching data from cache..."
+            )
     }
 
     // Triggered by loadUserData()/changes to liveHomeData (observer)
@@ -169,7 +185,7 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
 
         Log.d(
             "HomeViewModel",
-            "Created Workout Queue: $workoutQueue"
+            "Created Workout Queue:\n$workoutQueue"
         )
 
         return workoutQueue.toList()
@@ -202,10 +218,10 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
         // Convert ScheduleData to DayOfWeek
         val schedule: List<DayOfWeek> = workoutSchedule.map { it.weekday }
 
-        Log.d(
-            "HomeViewModel",
-            "(getNextWorkoutDates parameters) workoutSchedule: $workoutSchedule, numDays: $numDays\nschedule weekdays: $schedule"
-        )
+//        Log.d(
+//            "HomeViewModel",
+//            "(getNextWorkoutDates parameters) workoutSchedule: $workoutSchedule, numDays: $numDays\nschedule weekdays: $schedule"
+//        )
 
         val today: LocalDate = LocalDate.now() // (e.g. 2024-04-08)
         var currentDate: LocalDate = today
@@ -233,15 +249,15 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
 
                 nextWorkoutDates.add(currentDate)
 
-                Log.d(
-                    "HomeViewModel",
-                    "$nextScheduledDay, $daysUntilNextScheduledDay"
-                )
+//                Log.d(
+//                    "HomeViewModel",
+//                    "$nextScheduledDay, $daysUntilNextScheduledDay"
+//                )
             }
-            Log.d(
-                "HomeViewModel",
-                "$nextWorkoutDates"
-            )
+//            Log.d(
+//                "HomeViewModel",
+//                "$nextWorkoutDates"
+//            )
 
             currentDayOfWeek = currentDate.dayOfWeek
             remainingDates--
@@ -249,8 +265,25 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
 
         Log.d(
             "HomeViewModel",
-            "Created Workout Dates: $nextWorkoutDates"
+            "Created Workout Dates:\n$nextWorkoutDates"
         )
         return nextWorkoutDates
     }
+
+    fun populateDB() {
+        viewModelScope.launch(Dispatchers.IO) {
+            stronkLiftsDao.populateDBWithDefaultData()
+        }
+
+        val defaultData: Map<String, Any> = mapOf(
+            "user" to defaultUser,
+            //"startedWorkoutHistory" to null,
+            "workoutSchedule" to PPLSchedule,
+            "workoutPlans" to PPLWorkoutPlans,
+            "nextWorkoutId" to 0
+        )
+
+        liveHomeData.postValue(defaultData)
+    }
+
 }

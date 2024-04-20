@@ -59,7 +59,7 @@ interface StronkLiftsDao {
     // CUSTOM TRANSACTIONS
 
     @Transaction
-    suspend fun populateDBWithDefaultData(): List<WorkoutPlan> {
+    suspend fun populateDBWithDefaultData() {
         // Set default user data
         Log.d(
             "HomeViewModel",
@@ -116,7 +116,6 @@ interface StronkLiftsDao {
             "Seeding DB done"
         )
 
-        return getAllWorkoutPlans()
     }
 
 
@@ -215,34 +214,28 @@ interface StronkLiftsDao {
     /* CUSTOM TRANSACTION */
 
     @Transaction
-    suspend fun getHomeActivityData(userId: Long): Map<String, Any> {
+    suspend fun getHomeActivityData(userId: Long): Map<String, Any>? {
         val u = getUser(userId)
-        val user = "user" to (u ?: defaultUser)
+        val user = u?.let {"user" to u } ?: return null
 
-        val s = u?.startedWorkoutHistoryId?.let { getWorkoutHistoryPartial(it) } // null if no started workout
-        val startedWorkoutHistory = s?. let{ "startedWorkoutHistory" to s }
+        val s = u.startedWorkoutHistoryId?.let { getWorkoutHistoryPartial(it) } // null if no started workout
+        val startedWorkoutHistory = s?.let{ "startedWorkoutHistory" to s }
 
-        val workoutSchedule = "workoutSchedule" to (u?.let{ getSchedule() } ?: PPLSchedule)
+        val workoutSchedule = "workoutSchedule" to getSchedule()
 
         /* If no user (data), populate DB with starting PPL data, get resulting Workout Plans */
         // Note: could fix this... originally wanted populateDBWithDefaultData to return nothing
-        val workoutPlans = "workoutPlans" to (u?. let{ getAllWorkoutPlans() } ?: populateDBWithDefaultData())
+        val workoutPlans = "workoutPlans" to getAllWorkoutPlans()
 
         Log.d(
             "StrongLiftsDao",
             "Fetching from DB done"
         )
 
-//        return if (startedWorkoutHistory == null) {
-//            mapOf(user, workoutSchedule, workoutPlans)
-//        } else {
-//            mapOf(user, startedWorkoutHistory, workoutSchedule, workoutPlans)
-//        }
-
         return startedWorkoutHistory?.let {
             mapOf(user, it, workoutSchedule, workoutPlans)
         } ?: mapOf(user, workoutSchedule, workoutPlans)
-}
+    }
 
 
     /* * * * * *  UPDATE  * * * * * */

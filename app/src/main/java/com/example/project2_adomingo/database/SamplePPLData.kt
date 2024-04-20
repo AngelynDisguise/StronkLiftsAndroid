@@ -6,7 +6,7 @@ const val DEFAULT_USER_ID: Long = 0
 
 val defaultUser = User(
     userId = DEFAULT_USER_ID,
-    username = "user"
+    username = "bruh"
 )
 
 val PPLSchedule: List<ScheduleDate> = listOf(

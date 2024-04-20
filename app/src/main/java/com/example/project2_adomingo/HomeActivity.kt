@@ -1,6 +1,5 @@
 package com.example.project2_adomingo
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -29,6 +28,7 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
+        // Setup HomeViewModel and connect to Room DB
         homeViewModel = HomeViewModel(application)
 
         // Update UI if app reconfigured (or recreated by lifecycle from low system resources)
@@ -43,60 +43,65 @@ class HomeActivity : AppCompatActivity() {
         val homeRecyclerView: RecyclerView = findViewById(R.id.home_recycler_view)
         homeRecyclerView.adapter = homeWorkoutListAdapter
 
-        Log.d(
-            "HomeActivity",
-            "Home List Adapters Set"
-        )
-
         // Observe changes to workout data
-        homeViewModel.liveHomeData.observe(this) { map ->
-
-            Log.d(
-                "HomeActivity",
-                "LiveHomeData received:\n$map"
-            )
-
-            try {
-                val user = map["user"] as? User ?: return@observe
-
-                val startedWorkoutHistory = map["startedWorkoutHistory"] as? WorkoutHistoryPartial?
-                val workoutSchedule = map["workoutSchedule"] as? List<ScheduleDate> // List<ScheduleDates>
-                val workoutPlans = map["workoutPlans"] as? List<WorkoutPlan> // List<WorkoutPlan>
-
-                // Display username
-                val usernameTextView: TextView = findViewById(R.id.home_affirmation)
-                val affirmationText = "Get ripped, ${user.username}"
-                usernameTextView.text = affirmationText
-
-                val nextWorkoutIndex = user.nextWorkoutIndex
-
+        homeViewModel.liveHomeData.observe(this) { data ->
+            data?.let { map ->
                 Log.d(
                     "HomeActivity",
-                    "Extracted Data:\nuser = ${user}\nworkoutSchedule = ${workoutSchedule}\nworkoutPlans = ${workoutPlans}\nnextWorkoutIndex = ${nextWorkoutIndex}\nstartedWorkoutHistory? = $startedWorkoutHistory"
+                    "LiveHomeData received:\n$map"
                 )
 
-                // Create Workout Queue
-                if (workoutPlans != null) {
-                    workoutQueue = homeViewModel.setWorkoutQueue(workoutPlans, nextWorkoutIndex, startedWorkoutHistory,
-                        MIN_QUEUE_SIZE)
+                try {
+                    val user = map["user"] as? User ?: return@observe // shouldn't return, data exists if user exists (DAO)
+
+                    val startedWorkoutHistory =
+                        map["startedWorkoutHistory"] as? WorkoutHistoryPartial?
+                    val workoutSchedule =
+                        map["workoutSchedule"] as? List<ScheduleDate> // List<ScheduleDates>
+                    val workoutPlans =
+                        map["workoutPlans"] as? List<WorkoutPlan> // List<WorkoutPlan>
+
+                    // Display username
+                    val usernameTextView: TextView = findViewById(R.id.home_affirmation)
+                    val affirmationText = "Get ripped, ${user.username}"
+                    usernameTextView.text = affirmationText
+
+                    val nextWorkoutIndex = user.nextWorkoutIndex
+
+                    Log.d(
+                        "HomeActivity",
+                        "Extracted Data:\nuser = ${user}\nworkoutSchedule = ${workoutSchedule}\nworkoutPlans = ${workoutPlans}\nnextWorkoutIndex = ${nextWorkoutIndex}\nstartedWorkoutHistory? = $startedWorkoutHistory"
+                    )
+
+                    // Create Workout Queue
+                    if (workoutPlans != null) {
+                        workoutQueue = homeViewModel.setWorkoutQueue(
+                            workoutPlans, nextWorkoutIndex, startedWorkoutHistory,
+                            MIN_QUEUE_SIZE
+                        )
+                    }
+
+                    // Create schedule dates:
+                    if (workoutSchedule != null) {
+                        workoutDates =
+                            homeViewModel.getNextWorkoutDates(workoutSchedule, workoutQueue.size)
+                    }
+
+                    // Commit to LiveData
+                    homeViewModel.liveWorkoutQueue.postValue((workoutQueue zip workoutDates).toList())
+
+                    // Save to Home ViewModel
+                    homeViewModel.workoutQueue = workoutQueue
+                    homeViewModel.workoutDates = workoutDates
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-
-                // Create schedule dates:
-                if (workoutSchedule != null) {
-                    workoutDates =
-                        homeViewModel.getNextWorkoutDates(workoutSchedule, workoutQueue.size)
-                }
-
-                // Commit to LiveData
-                homeViewModel.liveWorkoutQueue.postValue((workoutQueue zip workoutDates).toList())
-
-                // Save to Home ViewModel
-                homeViewModel.workoutQueue = workoutQueue
-                homeViewModel.workoutDates = workoutDates
-
-
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } ?: let {
+                Log.d(
+                    "HomeActivity",
+                    "No user data found in DB, populating DB with default data..."
+                )
+                homeViewModel.populateDB()
             }
         }
 
