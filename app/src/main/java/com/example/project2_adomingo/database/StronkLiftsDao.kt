@@ -1,5 +1,6 @@
 package com.example.project2_adomingo.database
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.room.Dao
@@ -9,7 +10,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import java.time.LocalDate
 
 /* TODO:
     - prepend internal methods with _
@@ -56,20 +56,83 @@ interface StronkLiftsDao {
         scheduleDates.forEach() { scheduleDate -> insertScheduleDate(scheduleDate) }
     }
 
+    // CUSTOM TRANSACTIONS
+
+    @Transaction
+    suspend fun populateDBWithDefaultData(): List<WorkoutPlan> {
+        // Set default user data
+        Log.d(
+            "HomeViewModel",
+            "Inserting user...: $defaultUser"
+        )
+        insertUser(defaultUser)
+
+        // Set user's schedule with default PPL schedule
+        Log.d(
+            "HomeViewModel",
+            "Inserting schedule...: $PPLSchedule"
+        )
+        insertSchedule(PPLSchedule)
+
+        // Populate Exercises table with default PPL exercises
+        val exerciseDataSet = listOf(pushExercises, pullExercises, legExercises)
+        exerciseDataSet.forEach { exerciseList ->
+            exerciseList.forEach {
+                Log.d(
+                    "HomeViewModel",
+                    "Inserting exercise...: $it"
+                )
+                insertExercise(it)
+            }
+        }
+
+        // Populate Workouts table with default PPL workouts
+        PPLWorkouts.forEach {
+            Log.d(
+                "HomeViewModel",
+                "Inserting workout...: $it"
+            )
+            insertWorkout(it)
+        }
+
+        // Populate WorkoutExercises table with default PPL workout exercises
+        val workoutExerciseDataSet =
+            listOf(pushWorkoutExercises, pullWorkoutExercises, legWorkoutExercises)
+        workoutExerciseDataSet.forEach { workoutExerciseList ->
+            workoutExerciseList.forEach {
+                Log.d(
+                    "HomeViewModel",
+                    "Inserting workout exercise... $it"
+                )
+                insertWorkoutExercise(it)
+            }
+        }
+
+        // No started workout by default
+        // nextWorkoutId is 0 by default
+
+        Log.d(
+            "StronkLiftsDao",
+            "Seeding DB done"
+        )
+
+        return getAllWorkoutPlans()
+    }
+
 
     /* * * * * *  READ  * * * * * */
 
-    // USER INFO
+    /* GET USER INFO */
 
     // Get user info (only one anon user exists)
-    @Query("SELECT * FROM users LIMIT 1")
-    suspend fun getUser(): User
+    @Query("SELECT * FROM users WHERE userId = :userId")
+    suspend fun getUser(userId: Long): User?
 
     // Get user count - should be 1
     @Query("SELECT COUNT(*) FROM users")
     suspend fun getUserCount(): Int
 
-    // WORKOUT PLAN
+    /* GET WORKOUT PLAN */
 
     // Get all workout plans (sorted)
     @Suppress("FunctionName") // ignore the underscore
@@ -78,15 +141,16 @@ interface StronkLiftsDao {
     fun _getAllWorkoutPlans(): List<WorkoutPlan>
 
     // Get all workouts in plan (sorted, with internal exercise list sorted)
-    fun getAllWorkoutPlans(): LiveData<List<WorkoutPlan>> {
+    fun getAllWorkoutPlans(): List<WorkoutPlan> {
         val workoutPlans: List<WorkoutPlan> = _getAllWorkoutPlans()
         workoutPlans.forEach { workoutPlan ->
             workoutPlan.exercises = workoutPlan.exercises.sortedBy { it.workoutExercise.listOrder }
         }
-        return MutableLiveData(workoutPlans) // LiveData is abstract???
+        return workoutPlans // LiveData is abstract???
     }
 
     // Get a specific workout in a plan (has the exercises and dates)
+    @Transaction
     @Query("SELECT * FROM workouts WHERE workoutId = :workoutId")
     suspend fun getWorkoutPlan(workoutId: Long): WorkoutPlan
 
@@ -115,25 +179,7 @@ interface StronkLiftsDao {
     @Query("SELECT * FROM workouts ORDER BY listOrder DESC LIMIT 1")
     suspend fun getLastWorkout(): Workout
 
-    // WORKOUT HISTORY
-
-    // Get workout history (has workout date and exercises)
-//    @Transaction
-//    @Query("SELECT * FROM workout_history")
-//    fun getWorkoutHistory(): LiveData<List<WorkoutHistoryComplete>>
-//
-//    // Get a workout from workout history
-//    // Assumption: User does one workout a day (each workout has only one date)
-//    // Note: Useful for getting today's workout session
-//    @Transaction
-//    @Query("SELECT * FROM workout_history WHERE workoutHistoryId = :workoutHistoryId")
-//    suspend fun getWorkoutFromHistory(workoutHistoryId: Long): WorkoutHistoryComplete
-//
-//    @Transaction
-//    @Query("SELECT * FROM workout_history WHERE date = :today")
-//    suspend fun getTodaysWorkout(today: LocalDate = LocalDate.now()): WorkoutHistoryComplete
-
-    // EXERCISES
+    /* GET EXERCISES */
 
     // Get all available exercises
     @Query("SELECT * FROM exercises")
@@ -143,43 +189,90 @@ interface StronkLiftsDao {
     @Query("SELECT COUNT(*) FROM exercises")
     suspend fun getExerciseCount(): Int
 
-    // SCHEDULE
+    /* GET WORKOUT HISTORY */
+    // Assumption: User does one workout a day (each workout has only one date)
+
+    @Transaction
+    @Query("SELECT * FROM workout_history WHERE workoutHistoryId = :workoutHistoryId")
+    suspend fun getWorkoutHistory(workoutHistoryId: Long): WorkoutHistory
+
+    @Transaction
+    @Query("SELECT * FROM workout_history WHERE workoutHistoryId = :workoutHistoryId")
+    suspend fun getWorkoutHistoryPartial(workoutHistoryId: Long): WorkoutHistoryPartial
+
+    // Get a workout from workout history
+    //
+//    @Transaction
+//    @Query("SELECT * FROM workout_history WHERE workoutHistoryId = :workoutHistoryId")
+//    suspend fun getWorkoutHistoryComplete(workoutHistoryId: Long): WorkoutHistoryComplete
+
+
+    /* GET SCHEDULE DATES */
 
     @Query("SELECT * FROM schedule_dates")
-    fun getSchedule() :LiveData<List<ScheduleDate>>
+    fun getSchedule(): List<ScheduleDate>
+
+    /* CUSTOM TRANSACTION */
+
+    @Transaction
+    suspend fun getHomeActivityData(userId: Long): Map<String, Any> {
+        val u = getUser(userId)
+        val user = "user" to (u ?: defaultUser)
+
+        val s = u?.startedWorkoutHistoryId?.let { getWorkoutHistoryPartial(it) } // null if no started workout
+        val startedWorkoutHistory = s?. let{ "startedWorkoutHistory" to s }
+
+        val workoutSchedule = "workoutSchedule" to (u?.let{ getSchedule() } ?: PPLSchedule)
+
+        /* If no user (data), populate DB with starting PPL data, get resulting Workout Plans */
+        // Note: could fix this... originally wanted populateDBWithDefaultData to return nothing
+        val workoutPlans = "workoutPlans" to (u?. let{ getAllWorkoutPlans() } ?: populateDBWithDefaultData())
+
+        Log.d(
+            "StrongLiftsDao",
+            "Fetching from DB done"
+        )
+
+//        return if (startedWorkoutHistory == null) {
+//            mapOf(user, workoutSchedule, workoutPlans)
+//        } else {
+//            mapOf(user, startedWorkoutHistory, workoutSchedule, workoutPlans)
+//        }
+
+        return startedWorkoutHistory?.let {
+            mapOf(user, it, workoutSchedule, workoutPlans)
+        } ?: mapOf(user, workoutSchedule, workoutPlans)
+}
+
 
     /* * * * * *  UPDATE  * * * * * */
 
-    // USER
+    /* UPDATE USER INFO */
 
-    // Update username
+    // Update User
     @Update
     suspend fun updateUser(user: User)
 
-    // WORKOUT PLAN
+    // Update username
+    @Query("UPDATE users SET username = :username WHERE userId = :userId")
+    suspend fun updateUsername(username: String, userId: Long)
 
-    // Update a workout
+    @Query("UPDATE users SET nextWorkoutIndex = nextWorkoutIndex + 1 WHERE userId = :userId")
+    suspend fun incrementNextWorkoutIndex(userId: Long)
+
+    @Query("UPDATE users SET nextWorkoutIndex = nextWorkoutIndex - 1 WHERE userId = :userId")
+    suspend fun decrementNextWorkoutIndex(userId: Long)
+
+    @Query("UPDATE users SET startedWorkoutHistoryId = :id WHERE userId = :userId")
+    suspend fun updateStartedWorkoutHistoryId(id: Long?, userId: Long)
+
+
+    /* UPDATE WORKOUT PLAN */
+
     @Update
     suspend fun updateWorkout(workout: Workout)
 
-    // Insert or update a workout plan with details
-//    @Transaction
-//    suspend fun insertOrUpdateWorkoutPlanWithDetails(workoutPlan: WorkoutPlan) {
-//        val workoutId = workoutPlan.workout.workoutId
-//
-//        // Delete the original WorkoutPlan
-//        deleteWorkoutPlan(workoutId)
-//
-//        // Insert the updated WorkoutPlan
-//        insertWorkoutPlan(workoutPlan)
-//
-//        // Insert WorkoutExercise
-//        for (exercise in workoutPlan.exercises) {
-//            insertWorkoutExercise(exercise)
-//        }
-//    }
-
-    // WORKOUT HISTORY
+    /* UPDATE WORKOUT HISTORY */
 
     //@Update
     //suspend fun updateWorkoutHistoryDate(workoutHistoryDate: WorkoutHistoryDate)
@@ -195,13 +288,13 @@ interface StronkLiftsDao {
 //        }
 //    }
 
-    // EXERCISE
+    /* UPDATE WORKOUT SCHEDULE */
 
     // Update an exercise
     @Update
     suspend fun updateExercise(exercise: Exercise)
 
-    // SCHEDULE
+    /* UPDATE SCHEDULE */
 
     // Should just add and delete instead
     @Transaction

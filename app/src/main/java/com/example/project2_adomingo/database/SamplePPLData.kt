@@ -2,7 +2,10 @@ package com.example.project2_adomingo.database
 
 import java.time.DayOfWeek
 
+const val DEFAULT_USER_ID: Long = 0
+
 val defaultUser = User(
+    userId = DEFAULT_USER_ID,
     username = "user"
 )
 

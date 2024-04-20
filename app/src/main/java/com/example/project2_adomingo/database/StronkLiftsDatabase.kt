@@ -17,8 +17,9 @@ import androidx.room.TypeConverters
     WorkoutExercise::class,
     WorkoutHistory::class,
     ExerciseHistory::class,
-    ExerciseSetHistory::class,
-                     ], version = 14)
+    ExerciseSetHistory::class],
+    //exportSchema = false,
+    version = 14)
 @TypeConverters(Converters::class)
 abstract class StronkLiftsDatabase : RoomDatabase() {
     abstract fun stronkLiftsDao(): StronkLiftsDao

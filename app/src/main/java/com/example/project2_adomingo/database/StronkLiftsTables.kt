@@ -10,7 +10,6 @@ import androidx.room.Relation
 import androidx.room.TypeConverters
 import java.time.DayOfWeek
 import java.time.LocalDate
-import kotlin.time.Duration
 
 // Only one user for right now (anonymous user)
 // May or may not have a current workout going on for them
@@ -19,16 +18,17 @@ import kotlin.time.Duration
         ForeignKey(
             entity = WorkoutHistory::class,
             parentColumns = ["workoutHistoryId"],
-            childColumns = ["currentWorkoutHistoryId"],
+            childColumns = ["startedWorkoutHistoryId"],
             onDelete = ForeignKey.SET_NULL
         )
     ]
 )
 data class User(
-    @PrimaryKey(autoGenerate = true) val userId: Long = 0,
+    @PrimaryKey val userId: Long = 0,
     var username: String = "user",
+    val nextWorkoutIndex: Int = 0,
     @ColumnInfo(index = true)
-    val currentWorkoutHistoryId: Long? = null // must persist even if workout plan is deleted
+    val startedWorkoutHistoryId: Long? = null // must persist even if workout plan is deleted
 )
 
 // 1:N, a user has many workout dates
@@ -42,7 +42,7 @@ data class ScheduleDate(
 // 1:N, a user has many workouts (in a workout plan)
 @Entity(tableName = "workouts")
 data class Workout(
-    @PrimaryKey(autoGenerate = true) val workoutId: Long,
+    @PrimaryKey val workoutId: Long,
     var workoutName: String,
     //var description: String,
     val listOrder: Int // should be a primary key?
@@ -53,7 +53,7 @@ data class Workout(
 // 1:N, a user has many exercises to choose from
 @Entity(tableName = "exercises")
 data class Exercise(
-    @PrimaryKey(autoGenerate = true) val exerciseId: Long,
+    @PrimaryKey val exerciseId: Long,
     val exerciseName: String,
     val equipment: Equipment,
     val muscleGroup: MuscleGroup
@@ -92,6 +92,17 @@ data class WorkoutExercise(
     val listOrder: Int
 )
 
+// Workout with the Workout Exercise
+data class WorkoutExercisePartial(
+    @Embedded val workoutExercise: Workout,
+    @Relation(
+        parentColumn = "workoutId",
+        entityColumn = "workoutId"
+    )
+    val exercises: List<WorkoutExercise>
+)
+
+// Workout Exercise with the Exercise
 data class WorkoutExerciseComplete(
     @Embedded val workoutExercise: WorkoutExercise,
     @Relation(
@@ -101,7 +112,7 @@ data class WorkoutExerciseComplete(
     val exercise: Exercise
 )
 
-// Workouts with a list of exercises and a list of dates
+// Workouts with the workout exercises with its exercises
 // Joined Workout and WorkoutExercise (joined with Exercise)
 data class WorkoutPlan(
     @Embedded val workout: Workout,
@@ -172,7 +183,9 @@ data class ExerciseHistory(
 data class ExerciseSetHistory(
     @PrimaryKey(autoGenerate = true)
     val exerciseSetHistoryId: Long = 0,
+    @ColumnInfo(index = true)
     val workoutHistoryId: Long,
+    @ColumnInfo(index = true)
     val exerciseHistoryId: Long,
     val setNumber: Int, // order by this
     val repsDone: Int,
@@ -180,18 +193,19 @@ data class ExerciseSetHistory(
 
 // Exercise History with a history of reps for each exercise set
 // Joined ExerciseHistory with ExerciseSetHistory
-data class ExerciseHistoryComplete(
-    @Embedded val exercise: ExerciseHistory,
-    @Relation(
-        parentColumn = "exerciseHistoryId",
-        entityColumn = "exerciseHistoryId"
-    )
-    val setsXreps: List<ExerciseSetHistory> // size of sets, need to order by set number
-)
+// TODO: Fix this. (error: "class must be either @Entity or @DatabaseView.")
+//data class ExerciseHistoryComplete(
+//    @Embedded val exercise: ExerciseHistory,
+//    @Relation(
+//        parentColumn = "exerciseHistoryId",
+//        entityColumn = "exerciseHistoryId"
+//    )
+//    val setsXreps: List<ExerciseSetHistory> // size of sets, need to order by set number
+//)
 
 // Workout History with a history of exercises (no history of reps)
 // Joined WorkoutHistory with ExerciseHistory
-// Used for sending current workout to HomeActivity
+// Used for getting started Workout info for Home Activity
 data class WorkoutHistoryPartial(
     @Embedded val workout: WorkoutHistory,
     @Relation(
@@ -203,6 +217,8 @@ data class WorkoutHistoryPartial(
 
 // Workout History with a history of exercises, with a history of reps in each set
 // Joined WorkoutHistory with ExerciseHistory (joined with ExerciseSetHistory)
+// Used for reloading workout history info for started workout in Workout Activity
+// TODO: Fix this. See ExerciseHistoryComplete.
 //data class WorkoutHistoryComplete(
 //    @Embedded val workout: WorkoutHistory,
 //    @Relation(

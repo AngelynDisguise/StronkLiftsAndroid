@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.R
 import com.example.project2_adomingo.database.ExerciseHistory
-import com.example.project2_adomingo.database.ExerciseHistoryComplete
+//import com.example.project2_adomingo.database.ExerciseHistoryComplete
 import org.json.JSONObject
 
 //class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryComplete>) :

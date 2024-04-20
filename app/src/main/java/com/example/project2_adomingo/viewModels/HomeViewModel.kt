@@ -4,13 +4,23 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.project2_adomingo.database.DEFAULT_USER_ID
+import com.example.project2_adomingo.database.Equipment
+import com.example.project2_adomingo.database.Exercise
+import com.example.project2_adomingo.database.MuscleGroup
 import com.example.project2_adomingo.database.PPLSchedule
 import com.example.project2_adomingo.database.PPLWorkouts
 import com.example.project2_adomingo.database.ScheduleDate
 import com.example.project2_adomingo.database.StronkLiftsDao
 import com.example.project2_adomingo.database.StronkLiftsDatabase
 import com.example.project2_adomingo.database.User
+import com.example.project2_adomingo.database.Workout
+import com.example.project2_adomingo.database.WorkoutExercise
+import com.example.project2_adomingo.database.WorkoutExerciseComplete
+import com.example.project2_adomingo.database.WorkoutHistory
+import com.example.project2_adomingo.database.WorkoutHistoryPartial
 import com.example.project2_adomingo.database.WorkoutPlan
 import com.example.project2_adomingo.database.defaultUser
 import com.example.project2_adomingo.database.legExercises
@@ -21,34 +31,41 @@ import com.example.project2_adomingo.database.pushExercises
 import com.example.project2_adomingo.database.pushWorkoutExercises
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.LocalDate
 
-class HomeViewModel(application: Application): AndroidViewModel(application) {
-
-    // DAO
-    private val stronkLiftsDao: StronkLiftsDao
-
-    // USER DATA
-    var user: User? = null
-    var workoutPlans: LiveData<List<WorkoutPlan>>? = null
-    var workoutSchedule: LiveData<List<ScheduleDate>>? = null
-
-    // HOME UI
-    var workoutQueue: List<WorkoutPlan>? = null // workout cards
-
-    /*
-    startedWorkout will tell if a workout has started.
-    Meaning
+/*
+    A workout is started if:
     - user's startedWorkoutId != null, AND that WorkoutHistory's date is today
     - front of workoutQueue and top card is today's workout (derived from a WorkoutHistory)
     - nextWorkoutIndex is at workoutQueue[1]
     - if user chooses a different card other than today's workout, they need to cancel today's workout (remove the top card),
 
      */
-    var startedWorkout: Boolean = false
+
+class HomeViewModel(application: Application): AndroidViewModel(application) {
+
+    // DAO
+    private val stronkLiftsDao: StronkLiftsDao
+
+    // USER DATA (only one user exists)
+    var loggedIn: Boolean = false
+    var started: Boolean = false
+
+    // HOME UI
+    lateinit var workoutQueue: List<WorkoutPlan>
+    lateinit var workoutDates: List<LocalDate>
+
+    /* Live data to fetch data needed to create workout queue */
+    var liveHomeData: MutableLiveData<Map<String, Any>> = MutableLiveData(emptyMap())
+
+    /* Live data to update Recycler View*/
+    var liveWorkoutQueue: MutableLiveData<List<Pair<WorkoutPlan, LocalDate>>> = MutableLiveData(
+        emptyList())
 
     init {
         // Connect to database
-         stronkLiftsDao = StronkLiftsDatabase.getDatabase(application).stronkLiftsDao()
+        stronkLiftsDao = StronkLiftsDatabase.getDatabase(application).stronkLiftsDao()
 
         Log.d(
             "HomeViewModel",
@@ -60,95 +77,180 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
     }
 
     // If no user exists, load default user info, PPL data, and schedule
+    // Called onCreate and on activity result callback (onResume)
     private fun loadUserData() {
         viewModelScope.launch(Dispatchers.IO) {
-            // Check if the database is empty
-            val noDataInDatabase = stronkLiftsDao.getUserCount() == 0
-
-            if (noDataInDatabase) {
-                Log.d(
-                    "HomeViewModel",
-                    "No Users found, seeding DB..."
-                )
-
-                // Set user
-                stronkLiftsDao.insertUser(defaultUser)
-
-                // Set PPL Schedule
-                stronkLiftsDao.insertSchedule(PPLSchedule)
-
-                // Set PPL Workout Data
-                PPLWorkouts.forEach {
-                    stronkLiftsDao.insertWorkout(it)
-                }
-
-                // Set PPL Exercises Data
-                val exerciseDataSet = listOf(pushExercises, pullExercises, legExercises)
-                exerciseDataSet.forEach { exerciseList ->
-                    exerciseList.forEach {
-                        stronkLiftsDao.insertExercise(it)
-                    }
-                }
-
-                // Set PPL Workout Exercises Data
-                val workoutExerciseDataSet =
-                    listOf(pushWorkoutExercises, pullWorkoutExercises, legWorkoutExercises)
-                workoutExerciseDataSet.forEach { workoutExerciseList ->
-                    workoutExerciseList.forEach {
-                        stronkLiftsDao.insertWorkoutExercise(it)
-                    }
-                }
-
-                Log.d(
-                    "HomeViewModel",
-                    "Seeding DB done"
-                )
+            // Fresh start?
+            if (!loggedIn) {
+                // Fetch data from DB
+                liveHomeData.postValue(stronkLiftsDao.getHomeActivityData(DEFAULT_USER_ID))
+                loggedIn = true
             }
-
-            // Get user
-            user = stronkLiftsDao.getUser()
-
-            // Load workout schedule
-            workoutSchedule = stronkLiftsDao.getSchedule()
-
-            // Load workout data
-            workoutPlans = stronkLiftsDao.getAllWorkoutPlans()
-
-            // Load workout queue (get the next three workouts to do)
-            // Get current workout if one was started (goes in front of queue)
-//            if (user!!.currentWorkoutHistoryId != null) {
-//                // Get current workout
-//                val currentWorkout: WorkoutHistoryPartial = getWorkoutHistoryPartial(currentWorkoutId)
-//                val currentWorkoutPlan: WorkoutPlan = WorkoutPlan(
-//                    Workout(
-//
-//                    )
-//                )
-//            }
-            workoutQueue = workoutPlans!!.value?.take(3)
-
-            Log.d(
-                "HomeViewModel",
-                "Got Data from DB:\nuser = ${user}\nworkoutSchedule = ${workoutSchedule!!.value}\nworkoutPlans = ${workoutPlans!!.value}s\nworkoutQueue = ${workoutQueue}"
-            )
         }
     }
 
-//    private fun loadUserData() {
-//        viewModelScope.launch(Dispatchers.IO){
-//            // Get user
-//            user = stronkLiftsDao.getUser()
-//
-//            // Load workout schedule
-//            workoutSchedule = stronkLiftsDao.getSchedule()
-//
-//            // Load workout data
-//            workoutPlans = stronkLiftsDao.getAllWorkoutPlans()
-//
-//            // Load workout queue (get the next three workouts to do)
-//            workoutQueue = workoutPlans.value?.take(3)
-//        }
-//    }
-//
+    // Triggered by loadUserData()/changes to liveHomeData (observer)
+    fun setWorkoutQueue(
+        workoutPlans: List<WorkoutPlan>,
+        nextWorkoutIndex: Int,
+        startedWorkoutHistory: WorkoutHistoryPartial?,
+        minQueueSize: Int
+    ): List<WorkoutPlan> {
+        if (workoutPlans.isEmpty()) {
+            return emptyList()
+        }
 
+        // Set Workout Queue
+        val workoutQueue: MutableList<WorkoutPlan> =
+            startWorkoutQueueAtIndex(workoutPlans, nextWorkoutIndex)
+
+        // Fill gaps by repeating if queue is too short
+        if (workoutQueue.size < minQueueSize) {
+            fillWorkoutQueue(minQueueSize)
+        }
+
+        // Workout started?
+        startedWorkoutHistory?.let {
+            val startedDate = startedWorkoutHistory.workout.date
+            val today = LocalDate.now()
+
+            // For today?
+            if (startedDate == today) {
+                /* Make dummy Workout Plan for the started workout */
+                val exercises: List<WorkoutExerciseComplete> =
+                    startedWorkoutHistory.exercises.map {
+                        WorkoutExerciseComplete(
+                            workoutExercise = WorkoutExercise(
+                                workoutExerciseId = -1,
+                                workoutId = -1,
+                                exerciseId = -1,
+                                sets = it.sets,
+                                reps = it.reps,
+                                weight = it.weight,
+                                breakTime = -1,
+                                listOrder = -1
+                            ),
+                            exercise = Exercise(
+                                exerciseId = -1,
+                                exerciseName = it.exerciseName,
+                                equipment = Equipment.MACHINE,
+                                muscleGroup = MuscleGroup.LEGS
+
+                            )
+                        )
+                    }
+                val startedWorkoutPlan = WorkoutPlan(
+                    workout = Workout(
+                        workoutId = -1,
+                        workoutName = startedWorkoutHistory.workout.workoutName,
+                        listOrder = -1,
+                    ),
+                    exercises = exercises
+                )
+
+                // Prepend started workout to front of queue
+                workoutQueue.add(0, startedWorkoutPlan)
+                workoutQueue.removeLast() // remove redundant workout
+
+                // Update nextWorkoutIndex
+                //this.nextWorkoutIndex += 1
+                viewModelScope.launch(Dispatchers.IO) {
+                    stronkLiftsDao.incrementNextWorkoutIndex(DEFAULT_USER_ID)
+                }
+            }
+            /* Started workout is not today - user forgot to finish old workout */
+            else {
+                viewModelScope.launch(Dispatchers.IO) {
+                    // WorkoutHistory should already saved, remove its status as started
+                    stronkLiftsDao.updateStartedWorkoutHistoryId(null, DEFAULT_USER_ID)
+                }
+            }
+        }
+
+        Log.d(
+            "HomeViewModel",
+            "Created Workout Queue: $workoutQueue"
+        )
+
+        return workoutQueue.toList()
+    }
+
+    private fun startWorkoutQueueAtIndex(
+        workoutPlans: List<WorkoutPlan>,
+        nextWorkoutIndex: Int
+    ): MutableList<WorkoutPlan> {
+        if (workoutPlans.isEmpty() || nextWorkoutIndex < 0) {
+            return mutableListOf()
+        }
+
+        val nextWorkout = workoutPlans[nextWorkoutIndex]
+        val workoutQueue = workoutPlans.dropWhile { it != nextWorkout } +
+                workoutPlans.takeWhile { it != nextWorkout }
+
+        return workoutQueue.toMutableList()
+    }
+
+    private fun fillWorkoutQueue(size: Int) {
+        workoutQueue = ((0 until size).map { workoutQueue[it % workoutQueue.size] }).toMutableList()
+    }
+
+    // Triggered by loadUserData()/changes to liveHomeData (observer)
+    fun getNextWorkoutDates(
+        workoutSchedule: List<ScheduleDate>,
+        numDays: Int
+    ): List<LocalDate> {
+        // Convert ScheduleData to DayOfWeek
+        val schedule: List<DayOfWeek> = workoutSchedule.map { it.weekday }
+
+        Log.d(
+            "HomeViewModel",
+            "(getNextWorkoutDates parameters) workoutSchedule: $workoutSchedule, numDays: $numDays\nschedule weekdays: $schedule"
+        )
+
+        val today: LocalDate = LocalDate.now() // (e.g. 2024-04-08)
+        var currentDate: LocalDate = today
+        var currentDayOfWeek: DayOfWeek =
+            today.dayOfWeek // (e.g. Monday, value = 1; Sunday, value = 7)
+        var remainingDates: Int = numDays
+        val nextWorkoutDates = mutableListOf<LocalDate>()
+
+        while (remainingDates > 0) {
+            // If today is in the schedule, add it as the first item in the list
+            if ((currentDate == today) && (currentDayOfWeek in schedule) && nextWorkoutDates.isEmpty()) {
+                nextWorkoutDates.add(currentDate)
+            } else {
+                // Get the next day in the schedule from today
+                val nextScheduledDay: DayOfWeek =
+                    schedule.firstOrNull { it.value > currentDayOfWeek.value }
+                        ?: schedule.first() // If no day comes after the current day, then the next day would be the first day in the schedule
+
+                // Calculate the number of days until the next scheduled day
+                val daysUntilNextScheduledDay: Int =
+                    (nextScheduledDay.value - currentDayOfWeek.value + 7) % 7
+
+                // Add the number of days to the current date to get the date of the next scheduled day
+                currentDate = currentDate.plusDays(daysUntilNextScheduledDay.toLong())
+
+                nextWorkoutDates.add(currentDate)
+
+                Log.d(
+                    "HomeViewModel",
+                    "$nextScheduledDay, $daysUntilNextScheduledDay"
+                )
+            }
+            Log.d(
+                "HomeViewModel",
+                "$nextWorkoutDates"
+            )
+
+            currentDayOfWeek = currentDate.dayOfWeek
+            remainingDates--
+        }
+
+        Log.d(
+            "HomeViewModel",
+            "Created Workout Dates: $nextWorkoutDates"
+        )
+        return nextWorkoutDates
+    }
 }
