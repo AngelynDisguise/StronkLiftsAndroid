@@ -57,9 +57,6 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
     var workoutSchedule: List<ScheduleDate>? = null
     var workoutPlans: List<WorkoutPlan>? = null
 
-    var startedWHID: Int? = null
-    var lastFinishedWHID: Int? = null
-
     var startedWorkout: WorkoutHistoryPartial? = null
     var lastFinishedWorkout: WorkoutHistoryPartial? = null
 
@@ -409,4 +406,76 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
         }
     }
 
+    fun setNewStartedWorkout(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Get new started workout
+            val res = async { stronkLiftsDao.getWorkoutHistoryPartial(id) }
+
+            // Save new started workout to view model
+            val newStartedWorkout =  res.await()
+            startedWorkout = newStartedWorkout
+
+            // Recreate workout dates
+            workoutSchedule?.let {
+                workoutDates = setWorkoutDates(workoutSchedule!!, newStartedWorkout, lastFinishedWorkout)
+            }
+
+            // Recreate workout queue
+            workoutPlans?.let {
+                workoutQueue = setWorkoutQueue(workoutPlans!!, nextWorkoutIndex, newStartedWorkout, lastFinishedWorkout, workoutDates.size)
+            }
+
+            // Commit to LiveData
+            liveWorkoutQueue.postValue((workoutQueue zip workoutDates).toList())
+        }
+    }
+
+    fun cancelStartedWorkout() {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Set started workout to null
+            stronkLiftsDao.updateStartedWHID(null, DEFAULT_USER_ID)
+            startedWorkout = null
+
+            // Recreate workout dates
+            workoutSchedule?.let {
+                workoutDates = setWorkoutDates(workoutSchedule!!, null, lastFinishedWorkout)
+            }
+
+            // Recreate workout queue
+            workoutPlans?.let {
+                workoutQueue = setWorkoutQueue(workoutPlans!!, nextWorkoutIndex, null, lastFinishedWorkout, workoutDates.size)
+            }
+
+            // Commit to LiveData
+            liveWorkoutQueue.postValue((workoutQueue zip workoutDates).toList())
+        }
+    }
+
+    fun setNewFinishedWorkout(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Get new started workout
+            val res = async { stronkLiftsDao.getWorkoutHistoryPartial(id) }
+
+            // Save new finished workout to view model
+            val newFinishedWorkout =  res.await()
+            startedWorkout = newFinishedWorkout
+
+            // Set started workout to null
+            stronkLiftsDao.updateStartedWHID(null, DEFAULT_USER_ID)
+            startedWorkout = null
+
+            // Recreate workout dates
+            workoutSchedule?.let {
+                workoutDates = setWorkoutDates(workoutSchedule!!, newFinishedWorkout, lastFinishedWorkout)
+            }
+
+            // Recreate workout queue
+            workoutPlans?.let {
+                workoutQueue = setWorkoutQueue(workoutPlans!!, nextWorkoutIndex, newFinishedWorkout, lastFinishedWorkout, workoutDates.size)
+            }
+
+            // Commit to LiveData
+            liveWorkoutQueue.postValue((workoutQueue zip workoutDates).toList())
+        }
+    }
 }

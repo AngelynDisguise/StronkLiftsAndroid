@@ -1,10 +1,12 @@
 package com.example.project2_adomingo
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
@@ -18,6 +20,10 @@ import com.example.project2_adomingo.listAdapters.HomeWorkoutListAdapter
 import com.example.project2_adomingo.viewModels.HomeViewModel
 import org.json.JSONObject
 import java.time.LocalDate
+
+const val RESULT_NEW_START = 1
+const val RESULT_CANCEL_START = -1
+const val RESULT_FINISHED = 0
 
 class HomeActivity : AppCompatActivity() {
     private lateinit var homeViewModel: HomeViewModel
@@ -172,12 +178,13 @@ class HomeActivity : AppCompatActivity() {
         val intent = Intent(this, WorkoutActivity::class.java)
 
         // If any, delete and cancel already started workout
-        if (homeViewModel.startedWorkout != null) {
-            // homeViewModel.startedWorkout = null  // unnecessary? foreign key constraint sets this to null when deleting workout history
-            homeViewModel.updateStartedWHID(null)
-
-
+        val startedWorkout = homeViewModel.startedWorkout?.workout
+        startedWorkout?.let {
+            homeViewModel.deleteWorkoutHistory(startedWorkout)
+            homeViewModel.startedWorkout = null
+            //homeViewModel.updateStartedWHID(null) // unnecessary? foreign key constraint sets this to null when deleting workout history
         }
+
         /* Pass WorkoutPlan id
         * - Workout activity will query to get info (unless workoutId is cached)
         * - WorkoutPlan should exist since you can't click on an unstarted workout plan that doesn't exist
@@ -200,10 +207,32 @@ class HomeActivity : AppCompatActivity() {
         intent.putExtra("offset", offset)
         intent.putExtra("queueSize", queueSize)
 
-        startActivity(intent)
+        startForWorkoutActivityResult.launch(intent)
 
-        // TODO: Register activity for result callback, so that HomeActivity knows if the workout was actually started
+    }
 
+    // Callback for Workout Activity result
+    private var startForWorkoutActivityResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        when (result.resultCode) {
+            RESULT_NEW_START -> {
+                val newStartedWHID: Long? = result.data?.getLongExtra("newStartedWHID", -1)
+                if (newStartedWHID != null && newStartedWHID > -1) {
+                    homeViewModel.setNewStartedWorkout(newStartedWHID)
+                }
+            }
+            RESULT_CANCEL_START -> {
+                homeViewModel.cancelStartedWorkout()
+            }
+            RESULT_FINISHED -> {
+                val newFinishedWHID: Long? = result.data?.getLongExtra("newFinishedWHID", -1)
+                if (newFinishedWHID != null && newFinishedWHID > -1) {
+                    homeViewModel.setNewFinishedWorkout(newFinishedWHID)
+                }
+            }
+            else -> {
+                Log.d("HomeActivity", "Error: unknown result code (${result.resultCode}) returned by Workout Activity")
+            }
+        }
     }
 
     // Pass the startedWorkoutHistoryId
