@@ -9,11 +9,12 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.R
 import com.example.project2_adomingo.database.ExerciseHistory
+import com.example.project2_adomingo.database.ExerciseHistoryComplete
 //import com.example.project2_adomingo.database.ExerciseHistoryComplete
 import org.json.JSONObject
 
 //class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryComplete>) :
-class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistory>) :
+class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryComplete>) :
     RecyclerView.Adapter<WorkoutListAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         // Header row
@@ -35,7 +36,7 @@ class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistory>) :
     }
 
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
-        val exercise = exercises[position]
+        val exercise = exercises[position].exercise
         val name = exercise.exerciseName
         val sets = exercise.sets
         val reps = exercise.reps
@@ -51,9 +52,18 @@ class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistory>) :
         viewHolder.setsXRepsWeight.text = text
 
         // Embedded list of sets/reps
-        val setsXreps = MutableList(sets) { reps } // Init a list of size sets, each element the number of reps
+        val setsXreps: MutableList<Int> = if (exercises[position].setsXreps.isEmpty()) {
+            MutableList(sets) { reps } // Init a list of size sets, each element the number of reps
+        } else {
+            exercises[position].setsXreps.map { it.repsDone }.toMutableList()
+        }
         viewHolder.bind(setsXreps)
     }
 
     override fun getItemCount() = exercises.size
+
+    fun updateWorkoutListAdapter(exercises: MutableList<ExerciseHistoryComplete>) {
+        this.exercises = exercises
+        notifyDataSetChanged()
+    }
 }

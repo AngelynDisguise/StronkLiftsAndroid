@@ -6,11 +6,11 @@ import android.view.View
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.database.ExerciseHistory
+import com.example.project2_adomingo.database.ExerciseHistoryComplete
 import com.example.project2_adomingo.database.WorkoutHistory
+import com.example.project2_adomingo.database.WorkoutHistoryComplete
 import com.example.project2_adomingo.listAdapters.WorkoutListAdapter
 import com.example.project2_adomingo.viewModels.WorkoutViewModel
 import org.json.JSONException
@@ -21,91 +21,80 @@ class WorkoutActivity : AppCompatActivity() {
     private lateinit var workoutViewModel: WorkoutViewModel
     private lateinit var workoutListAdapter: WorkoutListAdapter
 
-    private var workoutId: Long = -1
-    private lateinit var workoutName: String
-    private lateinit var workoutHistoryDate: WorkoutHistory
-    private var exerciseHistory: MutableList<ExerciseHistory> = mutableListOf()
+    // For Recycler View
+    // Started if any of the ExerciseSetHistory lists are not empty
+    private var exercises: MutableList<ExerciseHistoryComplete> = mutableListOf()
 
+    // Workout to persist
+    private var workoutHistory: WorkoutHistoryComplete? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_workout)
 
-        // Get Current WorkoutPlan Data
+        /* Unpack intent */
+
+        // New workout intent
         val widExtra: Long = intent.getLongExtra("workoutId", -1)
-        val wnExtra: String? = intent.getStringExtra("workoutName")
-        val weExtra: ArrayList<String>? = intent.getStringArrayListExtra("workoutExercises")
-        if (wnExtra != null && weExtra != null && widExtra.toInt() != -1) {
-            try {
-                workoutId = widExtra
-                workoutName = wnExtra
 
-                Log.d(
-                    "WorkoutActivity",
-                    "Got Workout: $workoutName (id=$workoutId)"
-                )
+        // Started workout intent
+        val startedWHIDExtra: Long = intent.getLongExtra("startedWHID", -1)
 
-                // Create WorkoutHistory
-//                workoutHistoryDate = WorkoutHistory(
-//                    workoutName = workoutName,
-//                    date = LocalDate.now()
-//                )
-
-                val exercisesJSON: List<JSONObject> = weExtra.map{ JSONObject(it) }
-                exercisesJSON.forEach {
-                    val name: String = it.getString("name")
-                    val sets: Int = it.getInt("sets")
-                    val reps: Int = it.getInt("reps")
-                    val weight: Double = it.getDouble("weight")
-                    Log.d(
-                        "WorkoutActivity",
-                        "Got Exercise:\nname: $name\nsets: $sets" +
-                                "\nreps: $reps" +
-                                "\nweight: $weight"
-                    )
-                    // Create WorkoutHistory
-                    exerciseHistory.add(ExerciseHistory(
-                        workoutHistoryId = workoutHistoryDate.workoutHistoryId,
-                        exerciseName = name,
-                        sets = sets,
-                        reps = reps,
-                        weight = weight
-                    ))
-                }
-
-            } catch (e: JSONException) {
-                e.printStackTrace()
-            }
-        } else {
-            Log.d(
-                "WorkoutActivity",
-                "Error: Intent extra (workoutName, workoutExercises) passed from HomeActivity is is null."
-            )
-        }
-
-        // Set Workout title
-        val workoutNameTextView: TextView = findViewById(R.id.workout_title)
-        workoutNameTextView.text = workoutName
+        /* * */
 
         // Setup Workout View Model
         workoutViewModel = WorkoutViewModel(application)
 
+        // Recover from reconfiguration
+        if (workoutViewModel.workoutHistory != null) {
+            workoutHistory = workoutViewModel.workoutHistory
+            exercises = workoutViewModel.workoutHistory!!.exercises.toMutableList() // goes to recycler view
+            setWorkoutTitle(workoutViewModel.workoutHistory!!.workout.workoutName)
+        }
+        // Resume work in progress?
+        else if (startedWHIDExtra > -1) {
+            // Trigger live data
+            workoutViewModel.getStartedWorkoutHistory(startedWHIDExtra)
+            Log.d(
+                "WorkoutActivity",
+                "Got started workout intent. Resuming workout in progress..."
+            )
+        }
+        // Start new workout
+        else if (widExtra > -1) {
+            workoutViewModel.createWorkoutHistoryFromPlan(widExtra)
+        } else {
+            Log.d(
+                "WorkoutActivity",
+                "Error: No workoutId or startedWorkoutId found in intent passed from Home Activity."
+            )
+        }
+
         // Setup Recycler View and List Adapters
-        workoutListAdapter = WorkoutListAdapter(exerciseHistory)
+        workoutListAdapter = WorkoutListAdapter(exercises)
         val workoutRecyclerView: RecyclerView = findViewById(R.id.workout_recycler_view)
         workoutRecyclerView.adapter = workoutListAdapter
 
-//        // Overwrite current history from DB if history exists
-//        workoutViewModel.workoutHistory?.observe(this) {
-//            exerciseHistory = it.exercises.toMutableList()
+        // Overwrite current history from DB if history exists
+        workoutViewModel.workoutLiveData.observe(this) {
+//            exercises = it.exercises.toMutableList()
 //            workoutListAdapter.notifyDataSetChanged() // hope this works!
-//
-//            Log.d(
-//                "WorkoutActivity",
-//                "Loaded Exercise History Data from DB: $it\n"
-//            )
-//        }
+            workoutListAdapter.updateWorkoutListAdapter(it.exercises.toMutableList())
+
+            Log.d(
+                "WorkoutActivity",
+                "Loaded Workout History Data from DB: $it\n"
+            )
+            // save to view model
+            workoutViewModel.workoutHistory = it
+        }
+    }
+
+    private fun setWorkoutTitle(workoutName: String) {
+        // Set Workout title
+        val workoutNameTextView: TextView = findViewById(R.id.workout_title)
+        workoutNameTextView.text = workoutName
     }
 
     override fun onPause() {

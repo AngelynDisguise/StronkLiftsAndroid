@@ -4,14 +4,21 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.project2_adomingo.database.ExerciseHistory
+import com.example.project2_adomingo.database.ExerciseHistoryComplete
 import com.example.project2_adomingo.database.StronkLiftsDao
 import com.example.project2_adomingo.database.StronkLiftsDatabase
 import com.example.project2_adomingo.database.User
+import com.example.project2_adomingo.database.Workout
 import com.example.project2_adomingo.database.WorkoutHistory
+import com.example.project2_adomingo.database.WorkoutHistoryComplete
+import com.example.project2_adomingo.database.WorkoutPlan
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /* Notes to self:
 * A workout is started if a WorkoutHistory with date=today exists in the WorkoutHistory table (and user's currentWorkoutHistoryId != null).
@@ -39,13 +46,9 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
     // DAO
     private val stronkLiftsDao: StronkLiftsDao
 
-    // USER DATA
-    var user: User? = null
-    var workoutHistory: LiveData<WorkoutHistory>? = null
-    var exerciseHistory: LiveData<MutableList<ExerciseHistory>>? = null
-
-    // WORKOUT UI
-    val workoutStarted: Boolean = false
+    // STARTED
+    var workoutLiveData: MutableLiveData<WorkoutHistoryComplete> = MutableLiveData()
+    var workoutHistory: WorkoutHistoryComplete? = null
 
     init {
         // Connect to database
@@ -61,18 +64,20 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
         //loadWorkoutDataIfSaved()
     }
 
-//    private fun loadWorkoutDataIfSaved() {
-//        viewModelScope.launch(Dispatchers.IO) {
-//            if (user == null && workoutHistory == null) {
-//                // Fresh load, check data base for workoutHistory
-//                try {
-//                    stronkLiftsDao.get
-//                }
-//
-//
-//            }
-//        }
-//    }
+    fun getStartedWorkoutHistory(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val res = async { stronkLiftsDao.getWorkoutHistoryComplete(id) }
+            workoutLiveData.postValue(res.await())
+        }
+    }
+
+    fun createWorkoutHistoryFromPlan(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val res = async { stronkLiftsDao.getWorkoutPlan(id) }
+            val newWorkoutHistory = createWorkoutHistoryComplete(res.await())
+            workoutLiveData.postValue(newWorkoutHistory)
+        }
+    }
 
     fun updateWorkoutExerciseReps() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -80,12 +85,30 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
         }
     }
 
-    // If an exercise button is clicked and is red, then workout is started
-    // If workout is started, create WorkoutHistory
-    fun createWorkoutHistory() {
-        viewModelScope.launch(Dispatchers.IO) {
 
+    suspend fun createWorkoutHistoryComplete(workoutPlan: WorkoutPlan): WorkoutHistoryComplete {
+        // Create WorkoutHistory
+        val workout = WorkoutHistory(
+            date = LocalDate.now(),
+            workoutName = workoutPlan.workout.workoutName,
+            workoutId = workoutPlan.workout.workoutId
+        )
+
+        // Create ExerciseHistory list
+        val exercises: MutableList<ExerciseHistoryComplete> = mutableListOf()
+        workoutPlan.exercises.forEach {
+            // Create ExerciseHistoryComplete
+            val exercise = ExerciseHistory(
+                workoutHistoryId = workout.workoutHistoryId,
+                exerciseName = it.exercise.exerciseName,
+                sets = it.workoutExercise.sets,
+                reps = it.workoutExercise.reps,
+                weight = it.workoutExercise.weight
+            )
+            exercises.add(ExerciseHistoryComplete(exercise, emptyList()))
         }
+
+        return WorkoutHistoryComplete(workout, exercises)
     }
 
     // If all exercise buttons are white, then workout is not started anymore (update user)
