@@ -212,14 +212,14 @@ data class ExerciseSetHistory(
 // Exercise History with a history of reps for each exercise set
 // Joined ExerciseHistory with ExerciseSetHistory
 // TODO: Fix this. (error: "class must be either @Entity or @DatabaseView.")
-//data class ExerciseHistoryComplete(
-//    @Embedded val exercise: ExerciseHistory,
-//    @Relation(
-//        parentColumn = "exerciseHistoryId",
-//        entityColumn = "exerciseHistoryId"
-//    )
-//    val setsXreps: List<ExerciseSetHistory> // size of sets, need to order by set number
-//)
+data class ExerciseHistoryComplete(
+    @Embedded val exercise: ExerciseHistory,
+    @Relation(
+        parentColumn = "exerciseHistoryId",
+        entityColumn = "exerciseHistoryId",
+    )
+    val setsXreps: List<ExerciseSetHistory> // size of sets, need to order by set number
+)
 
 // Workout History with a history of exercises (no history of reps)
 // Joined WorkoutHistory with ExerciseHistory
@@ -237,14 +237,15 @@ data class WorkoutHistoryPartial(
 // Joined WorkoutHistory with ExerciseHistory (joined with ExerciseSetHistory)
 // Used for reloading workout history info for started workout in Workout Activity
 // TODO: Fix this. See ExerciseHistoryComplete.
-//data class WorkoutHistoryComplete(
-//    @Embedded val workout: WorkoutHistory,
-//    @Relation(
-//        parentColumn = "workoutHistoryId",
-//        entityColumn = "workoutHistoryId",
-//    )
-//    val exercises: List<ExerciseHistoryComplete>, // 1:N, each workout history had many exercise histories (with many rep histories)
-//)
+data class WorkoutHistoryComplete(
+    @Embedded val workout: WorkoutHistory,
+    @Relation(
+        parentColumn = "workoutHistoryId",
+        entityColumn = "workoutHistoryId",
+        entity = ExerciseHistory::class
+    )
+    val exercises: List<ExerciseHistoryComplete>, // 1:N, each workout history had many exercise histories (with many rep histories)
+)
 
 enum class Equipment(val type: String) {
     BARBELL("Barbell"),

@@ -200,10 +200,9 @@ interface StronkLiftsDao {
     suspend fun getWorkoutHistoryPartial(workoutHistoryId: Long): WorkoutHistoryPartial
 
     // Get a workout from workout history
-    //
-//    @Transaction
-//    @Query("SELECT * FROM workout_history WHERE workoutHistoryId = :workoutHistoryId")
-//    suspend fun getWorkoutHistoryComplete(workoutHistoryId: Long): WorkoutHistoryComplete
+    @Transaction
+    @Query("SELECT * FROM workout_history WHERE workoutHistoryId = :workoutHistoryId")
+    suspend fun getWorkoutHistoryComplete(workoutHistoryId: Long): WorkoutHistoryComplete
 
 
     /* GET SCHEDULE DATES */
