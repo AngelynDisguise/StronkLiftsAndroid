@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 14,
-    "identityHash": "9d04830c78e1d129ee4e811efdf04512",
+    "identityHash": "d63989db03a5e5651473c0805afa755b",
     "entities": [
       {
         "tableName": "users",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` INTEGER NOT NULL, `username` TEXT NOT NULL, `nextWorkoutIndex` INTEGER NOT NULL, `startedWorkoutHistoryId` INTEGER, PRIMARY KEY(`userId`), FOREIGN KEY(`startedWorkoutHistoryId`) REFERENCES `workout_history`(`workoutHistoryId`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` INTEGER NOT NULL, `username` TEXT NOT NULL, `nextWorkoutIndex` INTEGER NOT NULL, `startedWHID` INTEGER, `lastFinishedWHID` INTEGER, PRIMARY KEY(`userId`), FOREIGN KEY(`startedWHID`) REFERENCES `workout_history`(`workoutHistoryId`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`lastFinishedWHID`) REFERENCES `workout_history`(`workoutHistoryId`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "userId",
@@ -27,8 +27,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "startedWorkoutHistoryId",
-            "columnName": "startedWorkoutHistoryId",
+            "fieldPath": "startedWHID",
+            "columnName": "startedWHID",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastFinishedWHID",
+            "columnName": "lastFinishedWHID",
             "affinity": "INTEGER",
             "notNull": false
           }
@@ -41,13 +47,22 @@
         },
         "indices": [
           {
-            "name": "index_users_startedWorkoutHistoryId",
+            "name": "index_users_startedWHID",
             "unique": false,
             "columnNames": [
-              "startedWorkoutHistoryId"
+              "startedWHID"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_users_startedWorkoutHistoryId` ON `${TABLE_NAME}` (`startedWorkoutHistoryId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_users_startedWHID` ON `${TABLE_NAME}` (`startedWHID`)"
+          },
+          {
+            "name": "index_users_lastFinishedWHID",
+            "unique": false,
+            "columnNames": [
+              "lastFinishedWHID"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_users_lastFinishedWHID` ON `${TABLE_NAME}` (`lastFinishedWHID`)"
           }
         ],
         "foreignKeys": [
@@ -56,7 +71,18 @@
             "onDelete": "SET NULL",
             "onUpdate": "NO ACTION",
             "columns": [
-              "startedWorkoutHistoryId"
+              "startedWHID"
+            ],
+            "referencedColumns": [
+              "workoutHistoryId"
+            ]
+          },
+          {
+            "table": "workout_history",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "lastFinishedWHID"
             ],
             "referencedColumns": [
               "workoutHistoryId"
@@ -266,7 +292,7 @@
       },
       {
         "tableName": "workout_history",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workoutHistoryId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `date` INTEGER NOT NULL, `workoutName` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workoutHistoryId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `date` INTEGER NOT NULL, `workoutName` TEXT NOT NULL, `workoutId` INTEGER, FOREIGN KEY(`workoutId`) REFERENCES `workouts`(`workoutId`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "workoutHistoryId",
@@ -285,6 +311,12 @@
             "columnName": "workoutName",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "workoutId",
+            "columnName": "workoutId",
+            "affinity": "INTEGER",
+            "notNull": false
           }
         ],
         "primaryKey": {
@@ -293,8 +325,30 @@
             "workoutHistoryId"
           ]
         },
-        "indices": [],
-        "foreignKeys": []
+        "indices": [
+          {
+            "name": "index_workout_history_workoutId",
+            "unique": false,
+            "columnNames": [
+              "workoutId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_workout_history_workoutId` ON `${TABLE_NAME}` (`workoutId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "workouts",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "workoutId"
+            ],
+            "referencedColumns": [
+              "workoutId"
+            ]
+          }
+        ]
       },
       {
         "tableName": "exercise_history",
@@ -468,7 +522,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9d04830c78e1d129ee4e811efdf04512')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd63989db03a5e5651473c0805afa755b')"
     ]
   }
 }

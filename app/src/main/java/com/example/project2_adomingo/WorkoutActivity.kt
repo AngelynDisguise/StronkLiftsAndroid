@@ -47,10 +47,10 @@ class WorkoutActivity : AppCompatActivity() {
                 )
 
                 // Create WorkoutHistory
-                workoutHistoryDate = WorkoutHistory(
-                    workoutName = workoutName,
-                    date = LocalDate.now()
-                )
+//                workoutHistoryDate = WorkoutHistory(
+//                    workoutName = workoutName,
+//                    date = LocalDate.now()
+//                )
 
                 val exercisesJSON: List<JSONObject> = weExtra.map{ JSONObject(it) }
                 exercisesJSON.forEach {

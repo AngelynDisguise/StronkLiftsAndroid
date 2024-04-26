@@ -218,7 +218,7 @@ interface StronkLiftsDao {
         val u = getUser(userId)
         val user = u?.let {"user" to u } ?: return null
 
-        val s = u.startedWorkoutHistoryId?.let { getWorkoutHistoryPartial(it) } // null if no started workout
+        val s = u.startedWHID?.let { getWorkoutHistoryPartial(it) } // null if no started workout
         val startedWorkoutHistory = s?.let{ "startedWorkoutHistory" to s }
 
         val workoutSchedule = "workoutSchedule" to getSchedule()
@@ -246,9 +246,11 @@ interface StronkLiftsDao {
     @Update
     suspend fun updateUser(user: User)
 
-    // Update username
     @Query("UPDATE users SET username = :username WHERE userId = :userId")
     suspend fun updateUsername(username: String, userId: Long)
+
+    @Query("UPDATE users SET nextWorkoutIndex = :index WHERE userId = :userId")
+    suspend fun updateNextWorkoutIndex(index: Int, userId: Long)
 
     @Query("UPDATE users SET nextWorkoutIndex = nextWorkoutIndex + 1 WHERE userId = :userId")
     suspend fun incrementNextWorkoutIndex(userId: Long)
@@ -256,8 +258,11 @@ interface StronkLiftsDao {
     @Query("UPDATE users SET nextWorkoutIndex = nextWorkoutIndex - 1 WHERE userId = :userId")
     suspend fun decrementNextWorkoutIndex(userId: Long)
 
-    @Query("UPDATE users SET startedWorkoutHistoryId = :id WHERE userId = :userId")
-    suspend fun updateStartedWorkoutHistoryId(id: Long?, userId: Long)
+    @Query("UPDATE users SET startedWHID = :id WHERE userId = :userId")
+    suspend fun updateStartedWHID(id: Long?, userId: Long)
+
+    @Query("UPDATE users SET lastFinishedWHID = :id WHERE userId = :userId")
+    suspend fun updateLastFinishedWHID(id: Long?, userId: Long)
 
 
     /* UPDATE WORKOUT PLAN */
@@ -301,7 +306,6 @@ interface StronkLiftsDao {
     // Delete an exercise
     @Query("DELETE FROM exercises WHERE exerciseId = :exerciseId")
     suspend fun deleteExerciseById(exerciseId: Long)
-    // need to also refresh workout plans, maybe call getAllWorkoutPlans() again?
 
     // Delete a workout
     @Delete
@@ -315,28 +319,17 @@ interface StronkLiftsDao {
     @Query("DELETE FROM workout_exercises WHERE workoutId = :workoutId AND exerciseId = :exerciseId")
     suspend fun deleteWorkoutExercise(workoutId: Long, exerciseId: Long)
 
-    // Delete a workout plan
-//    @Transaction
-//    suspend fun deleteWorkoutPlan(workoutId: Long) {
-//        deleteAllWorkoutExercises(workoutId)
-//        deleteWorkout(workoutId)
-//    }
-
     // WORKOUT HISTORY
 
-//    @Delete
-//    suspend fun deleteWorkoutHistoryDate(workoutHistoryDate: WorkoutHistoryDate)
+    // Foreign Key constraint: Deleting workout history cascades to deleting exercise history and set history
+    @Delete
+    suspend fun deleteWorkoutHistory(workoutHistory: WorkoutHistory)
 
     @Delete
     suspend fun deleteExerciseHistory(exerciseHistory: ExerciseHistory)
 
-//    @Transaction
-//    suspend fun deleteWorkoutHistory(workoutHistory: WorkoutHistory) {
-//        deleteWorkoutHistoryDate(workoutHistory.workout)
-//        workoutHistory.exercises.forEach {
-//            deleteExerciseHistory(it)
-//        }
-//    }
+    @Delete
+    suspend fun deleteExerciseSetHistory(exerciseSetHistory: ExerciseSetHistory)
 
     // EXERCISE
 

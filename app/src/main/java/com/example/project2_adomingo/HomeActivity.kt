@@ -1,5 +1,6 @@
 package com.example.project2_adomingo
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -9,13 +10,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.database.ScheduleDate
 import com.example.project2_adomingo.database.User
+import com.example.project2_adomingo.database.WorkoutExerciseComplete
+import com.example.project2_adomingo.database.WorkoutHistory
 import com.example.project2_adomingo.database.WorkoutHistoryPartial
 import com.example.project2_adomingo.database.WorkoutPlan
 import com.example.project2_adomingo.listAdapters.HomeWorkoutListAdapter
 import com.example.project2_adomingo.viewModels.HomeViewModel
+import org.json.JSONObject
 import java.time.LocalDate
-
-private const val MIN_QUEUE_SIZE = 3
 
 class HomeActivity : AppCompatActivity() {
     private lateinit var homeViewModel: HomeViewModel
@@ -32,9 +34,11 @@ class HomeActivity : AppCompatActivity() {
         homeViewModel = HomeViewModel(application)
 
         // Update UI if app reconfigured (or recreated by lifecycle from low system resources)
-        if (homeViewModel.loggedIn) {
+        if (homeViewModel.user != null) {
             workoutQueue = homeViewModel.workoutQueue
             workoutDates = homeViewModel.workoutDates
+
+            setUsername(homeViewModel.user!!.username)
         }
 
         // Setup RecyclerView and List Adapters
@@ -54,37 +58,43 @@ class HomeActivity : AppCompatActivity() {
                 try {
                     val user = map["user"] as? User ?: return@observe // shouldn't return, data exists if user exists (DAO)
 
-                    val startedWorkoutHistory =
-                        map["startedWorkoutHistory"] as? WorkoutHistoryPartial?
                     val workoutSchedule =
                         map["workoutSchedule"] as? List<ScheduleDate> // List<ScheduleDates>
                     val workoutPlans =
                         map["workoutPlans"] as? List<WorkoutPlan> // List<WorkoutPlan>
 
-                    // Display username
-                    val usernameTextView: TextView = findViewById(R.id.home_affirmation)
-                    val affirmationText = "Get ripped, ${user.username}"
-                    usernameTextView.text = affirmationText
-
+                    // Dependent variables for schedule and workout
+                    val startedWorkout =
+                        map["startedWorkoutHistory"] as? WorkoutHistoryPartial? // partial means it includes some of the exercise data
+                    val lastFinishedWorkout =
+                        map["lastFinishedWorkout"] as? WorkoutHistoryPartial?
                     val nextWorkoutIndex = user.nextWorkoutIndex
+
+                    // Save and display username
+                    setUsername(user.username)
+
+                    homeViewModel.workoutSchedule = workoutSchedule
+                    homeViewModel.workoutPlans = workoutPlans
+
+                    // Actual things needed to be saved to view model
+                    homeViewModel.user = user
+                    homeViewModel.startedWorkout = startedWorkout
+                    homeViewModel.lastFinishedWorkout = lastFinishedWorkout
+                    homeViewModel.nextWorkoutIndex = nextWorkoutIndex
 
                     Log.d(
                         "HomeActivity",
-                        "Extracted Data:\nuser = ${user}\nworkoutSchedule = ${workoutSchedule}\nworkoutPlans = ${workoutPlans}\nnextWorkoutIndex = ${nextWorkoutIndex}\nstartedWorkoutHistory? = $startedWorkoutHistory"
+                        "Successfully extracted Data:\nuser = $user\nworkoutSchedule = $workoutSchedule\nworkoutPlans = $workoutPlans\nnextWorkoutIndex = $nextWorkoutIndex\nstartedWorkoutHistory? = $startedWorkout\nlastFinishedWorkoutHistory? = $lastFinishedWorkout"
                     )
 
-                    // Create Workout Queue
-                    if (workoutPlans != null) {
-                        workoutQueue = homeViewModel.setWorkoutQueue(
-                            workoutPlans, nextWorkoutIndex, startedWorkoutHistory,
-                            MIN_QUEUE_SIZE
-                        )
+                    // Create workout dates
+                    workoutSchedule?.let {
+                        workoutDates = homeViewModel.setWorkoutDates(workoutSchedule, startedWorkout, lastFinishedWorkout)
                     }
 
-                    // Create schedule dates:
-                    if (workoutSchedule != null) {
-                        workoutDates =
-                            homeViewModel.getNextWorkoutDates(workoutSchedule, workoutQueue.size)
+                    // Create workout queue
+                    workoutPlans?.let {
+                        workoutQueue = homeViewModel.setWorkoutQueue(workoutPlans, nextWorkoutIndex, startedWorkout, lastFinishedWorkout, workoutDates.size)
                     }
 
                     // Commit to LiveData
@@ -117,17 +127,20 @@ class HomeActivity : AppCompatActivity() {
             )
         }
 
-        if (homeViewModel.started) {
+        // Update StartedButton UI if workout started
+        if (homeViewModel.startedWorkout != null) {
             val startWorkoutButton: Button = findViewById(R.id.action_button)
             val text = "Continue Workout"
             startWorkoutButton.text = text
         }
 
+        // Clicking on card brings user to Workout Activity
         homeWorkoutListAdapter.setOnClickListener { position ->
             val projectedWorkoutDate: LocalDate = workoutDates[position]
             val today: LocalDate = LocalDate.now()
 
-            if (homeViewModel.started && projectedWorkoutDate != today) {
+            // Alert user if workout already started and this workout isn't for today
+            if ((homeViewModel.startedWorkout != null) && projectedWorkoutDate != today) {
                 val builder = AlertDialog.Builder(this)
                 builder.setTitle("Workout In Progress")
                     .setMessage("Starting a new workout will delete your workout in progress.")
@@ -141,47 +154,67 @@ class HomeActivity : AppCompatActivity() {
                 builder.setNegativeButton("Cancel") { _, _ ->
                     // Do nothing
                 }
-            } else {
+            }
+            // Clicked the started workout
+            else if (homeViewModel.startedWorkout != null && projectedWorkoutDate == today){
                 resumeWorkoutInProgress()
+            }
+            // Clicked a workout and nothing started yet (!homeViewModel.started)
+            else {
+                startNewWorkout(position)
             }
 
         }
     }
 
+    // Pass WorkoutPlan info for WorkoutHistory
     private fun startNewWorkout(position: Int) {
+        val intent = Intent(this, WorkoutActivity::class.java)
 
-//        // Get WorkoutPlan clicked and its projected date
-//        val workout: WorkoutPlan = workoutQueue[position]
-//        val projectedWorkoutDate: LocalDate = workoutDates[position]
-//
-//        // Extract info from WorkoutPlan needed for WorkoutHistory
-//        val workoutId: Long = workout.workout.workoutId
-//        val workoutName: String = workout.workout.workoutName
-//        val workoutExercises: List<WorkoutExerciseComplete> = workout.exercises
-//
-//        val extraWorkoutExercises = ArrayList<String>()
-//        workoutExercises.forEach { it ->
-//            val extraExercise = JSONObject()
-//            extraExercise.put("name", it.exercise.exerciseName)
-//            extraExercise.put("sets", it.workoutExercise.sets)
-//            extraExercise.put("reps", it.workoutExercise.reps)
-//            extraExercise.put("weight", it.workoutExercise.weight)
-//            // other potential info: body weight, notes
-//            extraWorkoutExercises.add(extraExercise.toString())
-//        }
-//
-//        val intent = Intent(this, WorkoutActivity::class.java)
-//        intent.putExtra("workoutId", workoutId)
-//        intent.putExtra("workoutName", workoutName)
-//        intent.putStringArrayListExtra("workoutExercises", extraWorkoutExercises)
-//        startActivity(intent)
+        // If any, delete and cancel already started workout
+        if (homeViewModel.startedWorkout != null) {
+            // homeViewModel.startedWorkout = null  // unnecessary? foreign key constraint sets this to null when deleting workout history
+            homeViewModel.updateStartedWHID(null)
+
+
+        }
+        /* Pass WorkoutPlan id
+        * - Workout activity will query to get info (unless workoutId is cached)
+        * - WorkoutPlan should exist since you can't click on an unstarted workout plan that doesn't exist
+        */
+        val workoutId: Long = workoutQueue[position].workout.workoutId
+        intent.putExtra("workoutId", workoutId)
+
+        /* Pass today flag and position offset, and queue size
+        * - If is this workout is started:
+        *  1) WorkoutHistory dated today's date is created and persisted when WorkoutActivity exists/pauses.
+        *  2) user's nextWorkoutIndex is incremented by position+1 (Corrected if index out of bounds)
+        *       - If top card clicked (position 0), offset = 1
+        *       - If other card clicked (0 <= position < queue.size), offset = position + 1
+         */
+        //val isToday: Boolean = (workoutDates[position] == LocalDate.now())
+        val offset: Int = position+1
+        val queueSize: Int = workoutQueue.size
+
+        //intent.putExtra("isToday", isToday) // started workout will become today
+        intent.putExtra("offset", offset)
+        intent.putExtra("queueSize", queueSize)
+
+        startActivity(intent)
 
         // TODO: Register activity for result callback, so that HomeActivity knows if the workout was actually started
+
+    }
+
+    // Pass the startedWorkoutHistoryId
+    private fun resumeWorkoutInProgress() {
         TODO()
     }
 
-    private fun resumeWorkoutInProgress() {
-        TODO()
+    private fun setUsername(username: String) {
+        val usernameTextView: TextView = findViewById(R.id.home_affirmation)
+        val affirmationText = "Get ripped, $username"
+        usernameTextView.text = affirmationText
     }
 
 

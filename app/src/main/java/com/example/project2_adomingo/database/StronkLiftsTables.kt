@@ -18,7 +18,13 @@ import java.time.LocalDate
         ForeignKey(
             entity = WorkoutHistory::class,
             parentColumns = ["workoutHistoryId"],
-            childColumns = ["startedWorkoutHistoryId"],
+            childColumns = ["startedWHID"],
+            onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = WorkoutHistory::class,
+            parentColumns = ["workoutHistoryId"],
+            childColumns = ["lastFinishedWHID"],
             onDelete = ForeignKey.SET_NULL
         )
     ]
@@ -28,7 +34,9 @@ data class User(
     var username: String = "user",
     val nextWorkoutIndex: Int = 0,
     @ColumnInfo(index = true)
-    val startedWorkoutHistoryId: Long? = null // must persist even if workout plan is deleted
+    val startedWHID: Long? = null, // can cancel or finish workout
+    @ColumnInfo(index = true)
+    val lastFinishedWHID: Long? = null
 )
 
 // 1:N, a user has many workout dates
@@ -125,13 +133,23 @@ data class WorkoutPlan(
 )
 
 // 1:N, a user has many workout dates (instances) in their history
-@Entity(tableName = "workout_history")
+@Entity(tableName = "workout_history",
+    foreignKeys = [
+        ForeignKey(
+            entity = Workout::class,
+            parentColumns = ["workoutId"],
+            childColumns = ["workoutId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ]
+)
 @TypeConverters(Converters::class)
 data class WorkoutHistory(
     @PrimaryKey(autoGenerate = true) val workoutHistoryId: Long = 0,
     val date: LocalDate, // Needed TypeConverter
-    val workoutName: String
-
+    val workoutName: String,
+    @ColumnInfo(index = true)
+    val workoutId: Long? // does it exist in plan?
 )
 
 // 1:N, a user has many exercises in their workout sessions in history
