@@ -22,8 +22,8 @@ class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryCompl
         val setsXRepsWeight: Button = view.findViewById(R.id.workout_setsXReps_weight)
 
         private val setsXRepsList: RecyclerView = view.findViewById(R.id.workout_exercise_recycler_view)
-        fun bind(setsXreps: MutableList<Int>) {
-            val setsXrepsListAdapter = SetsXRepsListAdapter(setsXreps)
+        fun bind(setsXreps: MutableList<Int>, originalReps: Int) {
+            val setsXrepsListAdapter = SetsXRepsListAdapter(setsXreps, originalReps)
             setsXRepsList.adapter = setsXrepsListAdapter
         }
     }
@@ -40,7 +40,7 @@ class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryCompl
         val name = exercise.exerciseName
         val sets = exercise.sets
         val reps = exercise.reps
-        val weight = exercise.weight // originally Double
+        val weight = exercise.weight.toInt()
 
         Log.d(
             "WorkoutListAdapter",
@@ -52,12 +52,7 @@ class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryCompl
         viewHolder.setsXRepsWeight.text = text
 
         // Embedded list of sets/reps
-        val setsXreps: MutableList<Int> = if (exercises[position].setsXreps.isEmpty()) {
-            MutableList(sets) { reps } // Init a list of size sets, each element the number of reps
-        } else {
-            exercises[position].setsXreps.map { it.repsDone }.toMutableList()
-        }
-        viewHolder.bind(setsXreps)
+        viewHolder.bind(exercises[position].setsXreps.map { it.repsDone }.toMutableList(), reps)
     }
 
     override fun getItemCount() = exercises.size
@@ -66,4 +61,6 @@ class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryCompl
         this.exercises = exercises
         notifyDataSetChanged()
     }
+
+
 }

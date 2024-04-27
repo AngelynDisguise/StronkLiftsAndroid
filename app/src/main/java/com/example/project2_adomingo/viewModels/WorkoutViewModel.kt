@@ -8,6 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.project2_adomingo.database.ExerciseHistory
 import com.example.project2_adomingo.database.ExerciseHistoryComplete
+import com.example.project2_adomingo.database.ExerciseSetHistory
 import com.example.project2_adomingo.database.StronkLiftsDao
 import com.example.project2_adomingo.database.StronkLiftsDatabase
 import com.example.project2_adomingo.database.User
@@ -96,16 +97,28 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
 
         // Create ExerciseHistory list
         val exercises: MutableList<ExerciseHistoryComplete> = mutableListOf()
-        workoutPlan.exercises.forEach {
+        workoutPlan.exercises.forEachIndexed { index, it ->
+            val workoutHistoryId = workout.workoutHistoryId
+            val sets = it.workoutExercise.sets
+            val reps = it.workoutExercise.reps
+
             // Create ExerciseHistoryComplete
             val exercise = ExerciseHistory(
-                workoutHistoryId = workout.workoutHistoryId,
+                workoutHistoryId = workoutHistoryId,
                 exerciseName = it.exercise.exerciseName,
-                sets = it.workoutExercise.sets,
-                reps = it.workoutExercise.reps,
+                sets = sets,
+                reps = reps,
                 weight = it.workoutExercise.weight
             )
-            exercises.add(ExerciseHistoryComplete(exercise, emptyList()))
+            val setsxreps: List<ExerciseSetHistory> = List(sets) {
+                ExerciseSetHistory(
+                    workoutHistoryId = workoutHistoryId,
+                    exerciseHistoryId = exercise.exerciseHistoryId,
+                    setNumber = index,
+                    repsDone = -reps // negative meaning it is not started
+                )
+            }
+            exercises.add(ExerciseHistoryComplete(exercise,setsxreps))
         }
 
         return WorkoutHistoryComplete(workout, exercises)
