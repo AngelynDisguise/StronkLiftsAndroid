@@ -13,8 +13,8 @@ import com.example.project2_adomingo.database.ExerciseHistoryComplete
 //import com.example.project2_adomingo.database.ExerciseHistoryComplete
 import org.json.JSONObject
 
-//class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryComplete>) :
-class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryComplete>) :
+
+class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryComplete>, private var setsXreps: MutableList<MutableList<Int>>) :
     RecyclerView.Adapter<WorkoutListAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         // Header row
@@ -52,7 +52,8 @@ class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryCompl
         viewHolder.setsXRepsWeight.text = text
 
         // Embedded list of sets/reps
-        viewHolder.bind(exercises[position].setsXreps.map { it.repsDone }.toMutableList(), reps)
+        //viewHolder.bind(exercises[position].setsXreps.map { it.repsDone }.toMutableList(), reps)
+        viewHolder.bind(setsXreps[position], reps)
     }
 
     override fun getItemCount() = exercises.size

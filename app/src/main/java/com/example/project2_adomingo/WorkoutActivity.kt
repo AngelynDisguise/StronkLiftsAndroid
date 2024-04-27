@@ -24,9 +24,8 @@ class WorkoutActivity : AppCompatActivity() {
     // For Recycler View
     // Started if any of the ExerciseSetHistory lists are not empty
     private var exercises: MutableList<ExerciseHistoryComplete> = mutableListOf()
+    private var setsXreps: MutableList<MutableList<Int>> = mutableListOf()
 
-    // Workout to persist
-    private var workoutHistory: WorkoutHistoryComplete? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,8 +47,8 @@ class WorkoutActivity : AppCompatActivity() {
 
         // Recover from reconfiguration
         if (workoutViewModel.workoutHistory != null) {
-            workoutHistory = workoutViewModel.workoutHistory
             exercises = workoutViewModel.workoutHistory!!.exercises.toMutableList() // goes to recycler view
+            setsXreps = exercises.map{ it.setsXreps.toMutableList().map { it.repsDone }.toMutableList() }.toMutableList()
             setWorkoutTitle(workoutViewModel.workoutHistory!!.workout.workoutName)
         }
         // Resume work in progress?
@@ -72,21 +71,23 @@ class WorkoutActivity : AppCompatActivity() {
         }
 
         // Setup Recycler View and List Adapters
-        workoutListAdapter = WorkoutListAdapter(exercises)
+        workoutListAdapter = WorkoutListAdapter(exercises, setsXreps)
         val workoutRecyclerView: RecyclerView = findViewById(R.id.workout_recycler_view)
         workoutRecyclerView.adapter = workoutListAdapter
 
         // Overwrite current history from DB if history exists
         workoutViewModel.workoutLiveData.observe(this) {
-//            exercises = it.exercises.toMutableList()
-//            workoutListAdapter.notifyDataSetChanged() // hope this works!
-            workoutListAdapter.updateWorkoutListAdapter(it.exercises.toMutableList())
+            exercises.addAll(it.exercises)
+            setsXreps.addAll(exercises.map{ it.setsXreps.toMutableList().map { it.repsDone }.toMutableList() }.toMutableList())
+
+            workoutListAdapter.notifyDataSetChanged() // hope this works!
+            //workoutListAdapter.updateWorkoutListAdapter(it.exercises.toMutableList())
 
             Log.d(
                 "WorkoutActivity",
                 "Loaded Workout History Data from DB: $it\n"
             )
-            // save to view model
+            // save to home and view model
             workoutViewModel.workoutHistory = it
         }
     }
@@ -104,6 +105,9 @@ class WorkoutActivity : AppCompatActivity() {
     }
 
     fun onClickHome(view: View) {
+        //val finalSetsXReps = exercises.map{ it.setsXreps.map { it.repsDone } }
+        val finalSetsXReps = setsXreps
+        Log.d("WorkoutActivity", "Finishing workout activity with history: ${workoutViewModel.workoutHistory}\n$finalSetsXReps")
         finish() // Close this activity
     }
 }
