@@ -46,10 +46,11 @@ class HomeActivity : AppCompatActivity() {
             workoutDates = homeViewModel.workoutDates
 
             setUsername(homeViewModel.user!!.username)
+            setActionButton()
         }
 
         // Setup RecyclerView and List Adapters
-        homeWorkoutListAdapter = HomeWorkoutListAdapter(emptyList())
+        homeWorkoutListAdapter = HomeWorkoutListAdapter(emptyList(), false)
 
         val homeRecyclerView: RecyclerView = findViewById(R.id.home_recycler_view)
         homeRecyclerView.adapter = homeWorkoutListAdapter
@@ -125,13 +126,15 @@ class HomeActivity : AppCompatActivity() {
         // Observe changes to Workout Queue
         // Must be observable because this can change during onResume or activity result callback
         homeViewModel.liveWorkoutQueue.observe(this) {
-            homeWorkoutListAdapter.updateWorkoutPlans(it)
+            homeWorkoutListAdapter.updateWorkoutPlans(it, homeViewModel.startedWorkout != null)
 
             Log.d(
                 "HomeActivity",
                 "LiveWorkoutQueue data received:\nWorkout Queue: ${it.map { pair ->  pair.first}}" +
                         "\nWorkout Dates: ${it.map { pair -> pair.second }}"
             )
+
+            setActionButton()
         }
 
         // Update StartedButton UI if workout started
@@ -188,6 +191,7 @@ class HomeActivity : AppCompatActivity() {
         startedWorkout?.let {
             homeViewModel.deleteWorkoutHistory(startedWorkout)
             homeViewModel.startedWorkout = null
+            //homeViewModel.cancelStartedWorkout()
             //homeViewModel.updateStartedWHID(null) // unnecessary? foreign key constraint sets this to null when deleting workout history
         }
 
@@ -262,5 +266,10 @@ class HomeActivity : AppCompatActivity() {
         usernameTextView.text = affirmationText
     }
 
+    private fun setActionButton() {
+        val startButton: Button = findViewById(R.id.action_button)
+        val text = if (homeViewModel.startedWorkout != null) "Resume Workout" else "Start Workout"
+        startButton.text = text
+    }
 
 }

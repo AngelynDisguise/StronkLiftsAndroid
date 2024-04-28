@@ -150,6 +150,8 @@ class WorkoutActivity : AppCompatActivity() {
             val newStartIntent = Intent(this, HomeActivity::class.java)
             newStartIntent.putExtra("newStartedWHID", workoutHistoryId)
             setResult(RESULT_NEW_START, newStartIntent)
+        } else {
+            setResult(RESULT_CANCEL_START)
         }
 
         finish() // Close this activity

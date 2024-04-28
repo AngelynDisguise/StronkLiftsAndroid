@@ -16,12 +16,15 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 
-class HomeWorkoutListAdapter(private var workoutPlansAndDates: List<Pair<WorkoutPlan, LocalDate>>) :
+class HomeWorkoutListAdapter(private var workoutPlansAndDates: List<Pair<WorkoutPlan, LocalDate>>, private var started: Boolean) :
     RecyclerView.Adapter<HomeWorkoutListAdapter.ViewHolder>() {
     private var onClickListener: ((Int) -> Unit)? = null
 
     // Reference the type of views I'm using
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        // Card
+        val homeWorkoutCard: RelativeLayout = view.findViewById(R.id.home_workout_card)
+
         // Header row
         val homeWorkoutName: TextView = view.findViewById(R.id.home_workout_name)
         val homeWorkoutDate: TextView = view.findViewById(R.id.home_workout_date)
@@ -58,14 +61,25 @@ class HomeWorkoutListAdapter(private var workoutPlansAndDates: List<Pair<Workout
 
         // Display Workout name
         viewHolder.homeWorkoutName.text = currentWorkout.workout.workoutName
-        
-        // Format date to look like "Tue, 9 Apr"
-        val formatter = DateTimeFormatter.ofPattern("EEE, d MMM")
 
-        // Display Format Date
         val workoutDate: LocalDate = workoutPlansAndDates[position].second
-        val formattedWorkoutDate: String = workoutDate.format(formatter)
-        viewHolder.homeWorkoutDate.text = formattedWorkoutDate
+
+        if (started && position == 0) {
+            val text = "Today"
+            viewHolder.homeWorkoutDate.text = text
+            viewHolder.homeWorkoutCard.setBackgroundResource(R.drawable.home_started_workout_card_background)
+        }
+        else if (workoutDate == LocalDate.now()) {
+            val text = "Today"
+            viewHolder.homeWorkoutDate.text = text
+            viewHolder.homeWorkoutCard.setBackgroundResource(R.drawable.home_next_workout_card_background)
+        } else {
+            // Format date to look like "Tue, 9 Apr"
+            val formatter = DateTimeFormatter.ofPattern("EEE, d MMM")
+            viewHolder.homeWorkoutDate.text = workoutDate.format(formatter)
+            viewHolder.homeWorkoutCard.setBackgroundResource(R.drawable.home_workout_card_background)
+
+        }
 
         // Embed workout's list of exercises
         viewHolder.bind(currentWorkout.exercises, this.onClickListener)
@@ -81,8 +95,9 @@ class HomeWorkoutListAdapter(private var workoutPlansAndDates: List<Pair<Workout
     override fun getItemCount() = workoutPlansAndDates.size
 
     // Update data
-    fun updateWorkoutPlans(newWorkoutPlansAndDates: List<Pair<WorkoutPlan, LocalDate>>) {
+    fun updateWorkoutPlans(newWorkoutPlansAndDates: List<Pair<WorkoutPlan, LocalDate>>, started: Boolean) {
         workoutPlansAndDates = newWorkoutPlansAndDates
+        this.started = started
         notifyDataSetChanged()
     }
 }
