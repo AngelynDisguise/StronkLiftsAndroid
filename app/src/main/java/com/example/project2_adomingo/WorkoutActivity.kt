@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.database.ExerciseHistory
 import com.example.project2_adomingo.database.ExerciseHistoryComplete
+import com.example.project2_adomingo.database.ExerciseSetHistory
 import com.example.project2_adomingo.database.WorkoutHistory
 import com.example.project2_adomingo.database.WorkoutHistoryComplete
 import com.example.project2_adomingo.listAdapters.WorkoutListAdapter
@@ -22,10 +23,12 @@ class WorkoutActivity : AppCompatActivity() {
     private lateinit var workoutListAdapter: WorkoutListAdapter
 
     // For Recycler View
-    // Started if any of the ExerciseSetHistory lists are not empty
+    // Started if any positive values in setsXreps
     private var exercises: MutableList<ExerciseHistoryComplete> = mutableListOf()
     private var setsXreps: MutableList<MutableList<Int>> = mutableListOf()
 
+    // Workout History to persist in DB
+    private lateinit var workoutHistory: WorkoutHistoryComplete
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +50,8 @@ class WorkoutActivity : AppCompatActivity() {
 
         // Recover from reconfiguration
         if (workoutViewModel.workoutHistory != null) {
-            exercises = workoutViewModel.workoutHistory!!.exercises.toMutableList() // goes to recycler view
+            workoutHistory = workoutViewModel.workoutHistory!!
+            exercises = workoutHistory.exercises.toMutableList() // goes to recycler view
             setsXreps = exercises.map{ it.setsXreps.toMutableList().map { it.repsDone }.toMutableList() }.toMutableList()
             setWorkoutTitle(workoutViewModel.workoutHistory!!.workout.workoutName)
         }
@@ -55,6 +59,7 @@ class WorkoutActivity : AppCompatActivity() {
         else if (startedWHIDExtra > -1) {
             // Trigger live data
             workoutViewModel.getStartedWorkoutHistory(startedWHIDExtra)
+            workoutViewModel.resumed = true
             Log.d(
                 "WorkoutActivity",
                 "Got started workout intent. Resuming workout in progress..."
@@ -81,7 +86,6 @@ class WorkoutActivity : AppCompatActivity() {
             setsXreps.addAll(exercises.map{ it.setsXreps.toMutableList().map { it.repsDone }.toMutableList() }.toMutableList())
 
             workoutListAdapter.notifyDataSetChanged() // hope this works!
-            //workoutListAdapter.updateWorkoutListAdapter(it.exercises.toMutableList())
 
             Log.d(
                 "WorkoutActivity",
@@ -89,6 +93,7 @@ class WorkoutActivity : AppCompatActivity() {
             )
             // save to home and view model
             workoutViewModel.workoutHistory = it
+            workoutHistory = it
         }
     }
 
@@ -105,9 +110,54 @@ class WorkoutActivity : AppCompatActivity() {
     }
 
     fun onClickHome(view: View) {
-        //val finalSetsXReps = exercises.map{ it.setsXreps.map { it.repsDone } }
-        val finalSetsXReps = setsXreps
-        Log.d("WorkoutActivity", "Finishing workout activity with history: ${workoutViewModel.workoutHistory}\n$finalSetsXReps")
+        // Pack up workoutHistory to persist
+        val workoutHistory = WorkoutHistoryComplete(
+            workout = workoutHistory.workout,
+            exercises = getNewExercises(exercises, setsXreps)
+        )
+
+        Log.d("WorkoutActivity", "Finishing workout activity: $workoutHistory\nWith sets: $setsXreps\nResumed?: ${workoutViewModel.resumed}\nWorkoutInProgress?: ${workoutInProgress(setsXreps)}")
+
+
+        // Resume workout cancelled?
+        if (workoutViewModel.resumed && !workoutInProgress(setsXreps)) {
+            Log.d("WorkoutActivity", "Resumed workout cancelled: started workout history exists and no positive reps were found.\nDeleting started workout history from DB...")
+            // Delete WorkoutHistory from DB
+            workoutViewModel.deleteWorkoutHistory()
+
+        } else if (workoutViewModel.resumed && workoutInProgress(setsXreps)) {
+            Log.d("WorkoutActivity", "Resumed workout continued: started workout history exists and positive rep values were found.\nSaving started workout history to DB...")
+            // Update WorkoutHistory in DB
+            workoutViewModel.updateWorkoutHistoryComplete(workoutHistory)
+
+        } else if(workoutInProgress(setsXreps)) {
+            Log.d("WorkoutActivity", "Started new workout: A new workout history was created and positive rep values were found.\nSaving new started workout history to DB...")
+            // Insert WorkoutHistory into DB
+            workoutViewModel.insertWorkoutHistoryComplete(workoutHistory)
+
+        }
+
         finish() // Close this activity
+    }
+
+    // Workout is considered "started" or "in progress" once any of the rep values are non-negative
+    private fun workoutInProgress(setsXreps: MutableList<MutableList<Int>>): Boolean {
+        return setsXreps.any { set -> set.any { reps -> reps > 0 }}
+    }
+
+    private fun getNewExercises(exercises: List<ExerciseHistoryComplete>, setsXreps: MutableList<MutableList<Int>>): List<ExerciseHistoryComplete> {
+        return (exercises.mapIndexed { index, exercise ->
+            ExerciseHistoryComplete(
+                exercise = exercise.exercise,
+                setsXreps = setsXreps[index].map {
+                    ExerciseSetHistory(
+                        workoutHistoryId = 0,
+                        exerciseHistoryId = 0,
+                        setNumber = index,
+                        repsDone = it
+                    )
+                }
+            )
+        })
     }
 }

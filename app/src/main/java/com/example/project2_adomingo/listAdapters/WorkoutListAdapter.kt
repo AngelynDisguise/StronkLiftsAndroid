@@ -52,7 +52,6 @@ class WorkoutListAdapter(private var exercises: MutableList<ExerciseHistoryCompl
         viewHolder.setsXRepsWeight.text = text
 
         // Embedded list of sets/reps
-        //viewHolder.bind(exercises[position].setsXreps.map { it.repsDone }.toMutableList(), reps)
         viewHolder.bind(setsXreps[position], reps)
     }
 

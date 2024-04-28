@@ -18,6 +18,7 @@ import com.example.project2_adomingo.database.WorkoutHistoryComplete
 import com.example.project2_adomingo.database.WorkoutPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -50,6 +51,7 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
     // STARTED
     var workoutLiveData: MutableLiveData<WorkoutHistoryComplete> = MutableLiveData()
     var workoutHistory: WorkoutHistoryComplete? = null
+    var resumed: Boolean = false
 
     init {
         // Connect to database
@@ -80,14 +82,8 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
         }
     }
 
-    fun updateWorkoutExerciseReps() {
-        viewModelScope.launch(Dispatchers.IO) {
 
-        }
-    }
-
-
-    suspend fun createWorkoutHistoryComplete(workoutPlan: WorkoutPlan): WorkoutHistoryComplete {
+    private suspend fun createWorkoutHistoryComplete(workoutPlan: WorkoutPlan): WorkoutHistoryComplete {
         // Create WorkoutHistory
         val workout = WorkoutHistory(
             date = LocalDate.now(),
@@ -127,7 +123,48 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
     // If all exercise buttons are white, then workout is not started anymore (update user)
     fun deleteWorkoutHistory() {
         viewModelScope.launch(Dispatchers.IO) {
+            workoutHistory?.let {
+                stronkLiftsDao.deleteWorkoutHistory(it.workout) // (FK constraint) this will delete all the exercise and set histories along with it! :D
+            }
+            // set user's startedWorkoutHistory to null in Home
+        }
+    }
 
+    fun updateWorkoutHistoryComplete(workouHistory: WorkoutHistoryComplete) {
+        viewModelScope.launch(Dispatchers.IO) {
+            workoutHistory?.let {
+                stronkLiftsDao.updateWorkoutHistoryComplete(workoutHistory!!)
+            }
+        }
+    }
+
+    fun insertWorkoutHistoryComplete(workoutHistoryComplete: WorkoutHistoryComplete) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val workoutHistoryId = stronkLiftsDao.insertWorkoutHistory(workoutHistoryComplete.workout)
+            Log.d("WorkoutActivity", "Inserting workout history... ${workoutHistoryComplete.workout}")
+
+            workoutHistoryComplete.exercises.forEach {
+                val newExercise = ExerciseHistory(
+                    workoutHistoryId = workoutHistoryId,
+                    exerciseName = it.exercise.exerciseName,
+                    sets = it.exercise.sets,
+                    reps = it.exercise.reps,
+                    weight = it.exercise.weight
+                )
+                val exerciseHistoryId = stronkLiftsDao.insertExerciseHistory(newExercise)
+                Log.d("WorkoutActivity", "Inserting exercise history... $newExercise")
+
+                it.setsXreps.forEach { set ->
+                    val newSet = ExerciseSetHistory(
+                        workoutHistoryId = workoutHistoryId,
+                        exerciseHistoryId = exerciseHistoryId,
+                        setNumber = set.setNumber,
+                        repsDone = set.repsDone
+                    )
+                    stronkLiftsDao.insertExerciseSetHistory(newSet)
+                    Log.d("WorkoutActivity", "Inserting set history... $newSet")
+                }
+            }
         }
     }
 }

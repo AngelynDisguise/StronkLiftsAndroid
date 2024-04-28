@@ -37,10 +37,34 @@ interface StronkLiftsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkout(workout: Workout)
 
-
     // Insert an exercise for a workout, overwriting if the exercise already exists in the workout
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkoutExercise(workoutExercise: WorkoutExercise)
+
+    // WORKOUT HISTORY
+
+    // Insert a workout history
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWorkoutHistory(workoutHistory: WorkoutHistory): Long
+
+    // Insert a exercise history
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExerciseHistory(exerciseHistory: ExerciseHistory): Long
+
+    // Insert a exercise set history
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExerciseSetHistory(exerciseSetHistory: ExerciseSetHistory)
+
+    @Transaction
+    suspend fun insertWorkoutHistoryComplete(workoutHistoryComplete: WorkoutHistoryComplete) {
+        insertWorkoutHistory(workoutHistoryComplete.workout)
+        workoutHistoryComplete.exercises.forEach {
+            insertExerciseHistory(it.exercise)
+            it.setsXreps.forEach { set ->
+                insertExerciseSetHistory(set)
+            }
+        }
+    }
 
     // EXERCISE
     @Insert(onConflict = OnConflictStrategy.IGNORE) // prevent overwrite
@@ -271,19 +295,25 @@ interface StronkLiftsDao {
 
     /* UPDATE WORKOUT HISTORY */
 
-    //@Update
-    //suspend fun updateWorkoutHistoryDate(workoutHistoryDate: WorkoutHistoryDate)
+    @Update
+    suspend fun updateWorkoutHistory(workoutHistoryDate: WorkoutHistory)
 
-//    @Update
-//    suspend fun updateExerciseHistory(exerciseHistory: ExerciseHistory)
+    @Update
+    suspend fun updateExerciseHistory(exerciseHistory: ExerciseHistory)
 
-    //@Transaction
-//    suspend fun updateWorkoutHistory(workoutHistory: WorkoutHistory) {
-//        updateWorkoutHistoryDate(workoutHistory.workout)
-//        workoutHistory.exercises.forEach {
-//            updateExerciseHistory(it)
-//        }
-//    }
+    @Update
+    suspend fun updateExerciseSetHistory(exerciseSetHistory: ExerciseSetHistory)
+
+    @Transaction
+    suspend fun updateWorkoutHistoryComplete(workoutHistoryComplete: WorkoutHistoryComplete) {
+        updateWorkoutHistory(workoutHistoryComplete.workout)
+        workoutHistoryComplete.exercises.forEach {
+            updateExerciseHistory(it.exercise)
+            it.setsXreps.forEach { set ->
+                updateExerciseSetHistory(set)
+            }
+        }
+    }
 
     /* UPDATE WORKOUT SCHEDULE */
 
