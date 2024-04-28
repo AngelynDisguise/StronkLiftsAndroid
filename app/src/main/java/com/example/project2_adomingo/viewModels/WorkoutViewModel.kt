@@ -114,7 +114,7 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
                     repsDone = -reps // negative meaning it is not started
                 )
             }
-            exercises.add(ExerciseHistoryComplete(exercise,setsxreps))
+            exercises.add(ExerciseHistoryComplete(exercise, setsxreps))
         }
 
         return WorkoutHistoryComplete(workout, exercises)
@@ -138,12 +138,17 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
         }
     }
 
-    fun insertWorkoutHistoryComplete(workoutHistoryComplete: WorkoutHistoryComplete) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val workoutHistoryId = stronkLiftsDao.insertWorkoutHistory(workoutHistoryComplete.workout)
-            Log.d("WorkoutActivity", "Inserting workout history... ${workoutHistoryComplete.workout}")
+    suspend fun insertWorkoutHistory(workoutHistory: WorkoutHistory): Long {
+        return viewModelScope.async(Dispatchers.IO) {
+            val workoutHistoryId = stronkLiftsDao.insertWorkoutHistory(workoutHistory)
+            Log.d("WorkoutActivity", "Inserting workout history... $workoutHistory")
+            workoutHistoryId
+        }.await()
+    }
 
-            workoutHistoryComplete.exercises.forEach {
+    fun insertExerciseHistoryComplete(workoutHistoryId: Long, exercises: List<ExerciseHistoryComplete>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            exercises.forEach {
                 val newExercise = ExerciseHistory(
                     workoutHistoryId = workoutHistoryId,
                     exerciseName = it.exercise.exerciseName,

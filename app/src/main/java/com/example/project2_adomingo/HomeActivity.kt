@@ -22,6 +22,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 
 const val RESULT_NEW_START = 1
+const val RESULT_RESUMED = 2
 const val RESULT_CANCEL_START = -1
 const val RESULT_FINISHED = 0
 
@@ -147,6 +148,7 @@ class HomeActivity : AppCompatActivity() {
 
             // Alert user if workout already started and this workout isn't for today
             if ((homeViewModel.startedWorkout != null) && projectedWorkoutDate != today) {
+                Log.d("HomeActivity", "User chose another workout other than the one in progress. Sending Alert Dialogue.")
                 val builder = AlertDialog.Builder(this)
                 builder.setTitle("Workout In Progress")
                     .setMessage("Starting a new workout will delete your workout in progress.")
@@ -160,13 +162,17 @@ class HomeActivity : AppCompatActivity() {
                 builder.setNegativeButton("Cancel") { _, _ ->
                     // Do nothing
                 }
+                val dialog: AlertDialog = builder.create()
+                dialog.show()
             }
             // Clicked the started workout
             else if (homeViewModel.startedWorkout != null && projectedWorkoutDate == today){
+                Log.d("HomeActivity", "User clicked the started workout.")
                 resumeWorkoutInProgress()
             }
             // Clicked a workout and nothing started yet (!homeViewModel.started)
             else {
+                Log.d("HomeActivity", "User clicked an unstarted workout.")
                 startNewWorkout(position)
             }
 
@@ -214,10 +220,18 @@ class HomeActivity : AppCompatActivity() {
     // Callback for Workout Activity result
     private var startForWorkoutActivityResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         when (result.resultCode) {
+            RESULT_RESUMED -> {
+                val resumedStartedWHID: Long? = result.data?.getLongExtra("resumedStartedWHID", -1)
+                if (resumedStartedWHID != null && resumedStartedWHID > -1) {
+                    Log.d("HomeActivity", "RESULT_RESUMED: Workout id $resumedStartedWHID still in progress.")
+                }
+            }
             RESULT_NEW_START -> {
                 val newStartedWHID: Long? = result.data?.getLongExtra("newStartedWHID", -1)
                 if (newStartedWHID != null && newStartedWHID > -1) {
                     homeViewModel.setNewStartedWorkout(newStartedWHID)
+                    Log.d("HomeActivity", "RESULT_NEW_START: Workout id $newStartedWHID started!")
+
                 }
             }
             RESULT_CANCEL_START -> {
@@ -227,6 +241,8 @@ class HomeActivity : AppCompatActivity() {
                 val newFinishedWHID: Long? = result.data?.getLongExtra("newFinishedWHID", -1)
                 if (newFinishedWHID != null && newFinishedWHID > -1) {
                     homeViewModel.setNewFinishedWorkout(newFinishedWHID)
+                    Log.d("HomeActivity", "RESULT_FINISHED: Workout id $newFinishedWHID finished!")
+
                 }
             }
             else -> {

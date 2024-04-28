@@ -1,11 +1,14 @@
 package com.example.project2_adomingo
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.database.ExerciseHistory
 import com.example.project2_adomingo.database.ExerciseHistoryComplete
@@ -14,6 +17,9 @@ import com.example.project2_adomingo.database.WorkoutHistory
 import com.example.project2_adomingo.database.WorkoutHistoryComplete
 import com.example.project2_adomingo.listAdapters.WorkoutListAdapter
 import com.example.project2_adomingo.viewModels.WorkoutViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.json.JSONException
 import org.json.JSONObject
 import java.time.LocalDate
@@ -110,31 +116,40 @@ class WorkoutActivity : AppCompatActivity() {
     }
 
     fun onClickHome(view: View) {
-        // Pack up workoutHistory to persist
-        val workoutHistory = WorkoutHistoryComplete(
-            workout = workoutHistory.workout,
-            exercises = getNewExercises(exercises, setsXreps)
-        )
+        //Log.d("WorkoutActivity", "Finishing workout activity: $workoutHistory\nWith sets: $setsXreps\nResumed?: ${workoutViewModel.resumed}\nWorkoutInProgress?: ${workoutInProgress(setsXreps)}")
 
-        Log.d("WorkoutActivity", "Finishing workout activity: $workoutHistory\nWith sets: $setsXreps\nResumed?: ${workoutViewModel.resumed}\nWorkoutInProgress?: ${workoutInProgress(setsXreps)}")
-
-
-        // Resume workout cancelled?
+        // Cancelled
         if (workoutViewModel.resumed && !workoutInProgress(setsXreps)) {
             Log.d("WorkoutActivity", "Resumed workout cancelled: started workout history exists and no positive reps were found.\nDeleting started workout history from DB...")
             // Delete WorkoutHistory from DB
             workoutViewModel.deleteWorkoutHistory()
-
-        } else if (workoutViewModel.resumed && workoutInProgress(setsXreps)) {
+            setResult(RESULT_CANCEL_START)
+        }
+        // Resumed
+        else if (workoutViewModel.resumed && workoutInProgress(setsXreps)) {
             Log.d("WorkoutActivity", "Resumed workout continued: started workout history exists and positive rep values were found.\nSaving started workout history to DB...")
             // Update WorkoutHistory in DB
             workoutViewModel.updateWorkoutHistoryComplete(workoutHistory)
 
+            // Send back over the resumed workoutHistoryId in intent
+            val resumedIntent = Intent(this, HomeActivity::class.java)
+            resumedIntent.putExtra("resumedStartedWHID", workoutHistory.workout.workoutId)
+            setResult(RESULT_RESUMED, resumedIntent)
+
+        // New Start
         } else if(workoutInProgress(setsXreps)) {
             Log.d("WorkoutActivity", "Started new workout: A new workout history was created and positive rep values were found.\nSaving new started workout history to DB...")
-            // Insert WorkoutHistory into DB
-            workoutViewModel.insertWorkoutHistoryComplete(workoutHistory)
+            // Insert WorkoutHistory into DB and get workoutId (async-await)
+            val workoutHistoryId = runBlocking(Dispatchers.IO) {
+                workoutViewModel.insertWorkoutHistory(workoutHistory.workout)
+            }
+            // Insert the rest of the exercise history (async)
+            workoutViewModel.insertExerciseHistoryComplete(workoutHistoryId, getNewExercises(exercises, setsXreps))
 
+            // Send over the new workoutHistoryId in intent
+            val newStartIntent = Intent(this, HomeActivity::class.java)
+            newStartIntent.putExtra("newStartedWHID", workoutHistoryId)
+            setResult(RESULT_NEW_START, newStartIntent)
         }
 
         finish() // Close this activity
