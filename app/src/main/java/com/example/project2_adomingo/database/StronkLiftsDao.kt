@@ -302,7 +302,7 @@ interface StronkLiftsDao {
     suspend fun updateExerciseHistory(exerciseHistory: ExerciseHistory)
 
     @Update
-    suspend fun updateExerciseSetHistory(exerciseSe tHistory: ExerciseSetHistory)
+    suspend fun updateExerciseSetHistory(exerciseSetHistory: ExerciseSetHistory)
 
     @Transaction
     suspend fun updateWorkoutHistoryComplete(workoutHistoryComplete: WorkoutHistoryComplete) {

@@ -282,8 +282,20 @@ class HomeActivity : AppCompatActivity() {
 
     private fun setActionButton() {
         val startButton: Button = findViewById(R.id.action_button)
-        val text = if (homeViewModel.startedWorkout != null) "Resume Workout" else "Start Workout"
-        startButton.text = text
+        if (homeViewModel.startedWorkout != null) {
+            val text = "Resume Workout"
+            startButton.text = text
+            startButton.setOnClickListener {
+                resumeWorkoutInProgress()
+            }
+        } else {
+            val text = "Start Workout"
+            startButton.text = text
+            startButton.setOnClickListener {
+                startNewWorkout(0)
+            }
+        }
+
     }
 
     override fun onResume() {
