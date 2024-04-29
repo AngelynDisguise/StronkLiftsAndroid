@@ -12,8 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project2_adomingo.database.ScheduleDate
 import com.example.project2_adomingo.database.User
-import com.example.project2_adomingo.database.WorkoutExerciseComplete
-import com.example.project2_adomingo.database.WorkoutHistory
 import com.example.project2_adomingo.database.WorkoutHistoryPartial
 import com.example.project2_adomingo.database.WorkoutPlan
 import com.example.project2_adomingo.listAdapters.HomeWorkoutListAdapter
@@ -130,8 +128,17 @@ class HomeActivity : AppCompatActivity() {
 
             Log.d(
                 "HomeActivity",
-                "LiveWorkoutQueue data received:\nWorkout Queue: ${it.map { pair ->  pair.first}}" +
+                "LIVE WORKOUT QUEUE DATA RECEIVED:\nWorkout Queue: ${it.map { pair ->  pair.first}}" +
                         "\nWorkout Dates: ${it.map { pair -> pair.second }}"
+            )
+
+            Log.d(
+                "HomeActivity",
+                "HOME VIEW MODEL REPORT:\n" +
+                        "user: ${homeViewModel.user}\n" +
+                        "startedWorkout: ${homeViewModel.startedWorkout}\n" +
+                        "lastFinishedWorkout: ${homeViewModel.lastFinishedWorkout}\n" +
+                        "nextWorkoutIndex: ${homeViewModel.nextWorkoutIndex}"
             )
 
             setActionButton()
@@ -217,8 +224,20 @@ class HomeActivity : AppCompatActivity() {
         intent.putExtra("offset", offset)
         intent.putExtra("queueSize", queueSize)
 
+        Log.d("HomeActivity", "Sending intent to Workout: $intent extras: ${intent.extras}")
         startForWorkoutActivityResult.launch(intent)
 
+    }
+
+    // Pass the startedWorkoutHistoryId
+    private fun resumeWorkoutInProgress() {
+        val intent = Intent(this, WorkoutActivity::class.java)
+        val startedWHID = homeViewModel.startedWorkout?.workout?.workoutHistoryId
+        startedWHID?.let {
+            intent.putExtra("startedWHID", startedWHID)
+        }
+        Log.d("HomeActivity", "Sending intent to Workout: $intent extras: ${intent.extras}")
+        startForWorkoutActivityResult.launch(intent)
     }
 
     // Callback for Workout Activity result
@@ -255,11 +274,6 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    // Pass the startedWorkoutHistoryId
-    private fun resumeWorkoutInProgress() {
-        TODO()
-    }
-
     private fun setUsername(username: String) {
         val usernameTextView: TextView = findViewById(R.id.home_affirmation)
         val affirmationText = "Get ripped, $username"
@@ -270,6 +284,19 @@ class HomeActivity : AppCompatActivity() {
         val startButton: Button = findViewById(R.id.action_button)
         val text = if (homeViewModel.startedWorkout != null) "Resume Workout" else "Start Workout"
         startButton.text = text
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        Log.d(
+            "HomeActivity",
+            "HOME VIEW MODEL REPORT:\n" +
+                    "user: ${homeViewModel.user}\n" +
+                    "startedWorkout: ${homeViewModel.startedWorkout}\n" +
+                    "lastFinishedWorkout: ${homeViewModel.lastFinishedWorkout}\n" +
+                    "nextWorkoutIndex: ${homeViewModel.nextWorkoutIndex}"
+        )
     }
 
 }

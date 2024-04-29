@@ -187,8 +187,9 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
                 workoutQueue = startWorkoutQueueAtIndex(workoutPlans, nextWorkoutIndex)
             }
         }
+        // Not started or finished (Fresh start)
         else {
-            workoutQueue = startWorkoutQueueAtIndex(workoutPlans, nextWorkoutIndex)
+            workoutQueue = startWorkoutQueueAtIndex(workoutPlans, 0) // (nextWorkoutIndex might not be 0 when cancelled, may need to handle that later)
         }
 
         Log.d(
@@ -408,6 +409,9 @@ class HomeViewModel(application: Application): AndroidViewModel(application) {
 
     fun setNewStartedWorkout(id: Long) {
         viewModelScope.launch(Dispatchers.IO) {
+            // Save new started workout ID
+            stronkLiftsDao.updateStartedWHID(id, DEFAULT_USER_ID)
+
             // Get new started workout
             val res = async { stronkLiftsDao.getWorkoutHistoryPartial(id) }
 

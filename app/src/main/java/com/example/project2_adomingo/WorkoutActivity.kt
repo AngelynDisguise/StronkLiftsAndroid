@@ -60,6 +60,10 @@ class WorkoutActivity : AppCompatActivity() {
             exercises = workoutHistory.exercises.toMutableList() // goes to recycler view
             setsXreps = exercises.map{ it.setsXreps.toMutableList().map { it.repsDone }.toMutableList() }.toMutableList()
             setWorkoutTitle(workoutViewModel.workoutHistory!!.workout.workoutName)
+            Log.d(
+                "WorkoutActivity",
+                "Recovering UI from reconfiguration..."
+            )
         }
         // Resume work in progress?
         else if (startedWHIDExtra > -1) {
@@ -68,12 +72,16 @@ class WorkoutActivity : AppCompatActivity() {
             workoutViewModel.resumed = true
             Log.d(
                 "WorkoutActivity",
-                "Got started workout intent. Resuming workout in progress..."
+                "Got started workout intent: $startedWHIDExtra. Resuming workout in progress..."
             )
         }
         // Start new workout
         else if (widExtra > -1) {
             workoutViewModel.createWorkoutHistoryFromPlan(widExtra)
+            Log.d(
+                "WorkoutActivity",
+                "Got new workout intent. Creating a new workout history from workout plan $widExtra..."
+            )
         } else {
             Log.d(
                 "WorkoutActivity",
@@ -88,18 +96,22 @@ class WorkoutActivity : AppCompatActivity() {
 
         // Overwrite current history from DB if history exists
         workoutViewModel.workoutLiveData.observe(this) {
-            exercises.addAll(it.exercises)
-            setsXreps.addAll(exercises.map{ it.setsXreps.toMutableList().map { it.repsDone }.toMutableList() }.toMutableList())
+            it?. let {
+                Log.d(
+                    "WorkoutActivity",
+                    "Loaded Workout History Data from DB: $it\n"
+                )
 
-            workoutListAdapter.notifyDataSetChanged() // hope this works!
+                exercises.addAll(it.exercises)
+                setsXreps.addAll(exercises.map{ it.setsXreps.toMutableList().map { it.repsDone }.toMutableList() }.toMutableList())
 
-            Log.d(
-                "WorkoutActivity",
-                "Loaded Workout History Data from DB: $it\n"
-            )
-            // save to home and view model
-            workoutViewModel.workoutHistory = it
-            workoutHistory = it
+                workoutListAdapter.notifyDataSetChanged() // hope this works!
+
+
+                // save to home and view model
+                workoutViewModel.workoutHistory = it
+                workoutHistory = it
+            }
         }
     }
 
@@ -116,7 +128,7 @@ class WorkoutActivity : AppCompatActivity() {
     }
 
     fun onClickHome(view: View) {
-        //Log.d("WorkoutActivity", "Finishing workout activity: $workoutHistory\nWith sets: $setsXreps\nResumed?: ${workoutViewModel.resumed}\nWorkoutInProgress?: ${workoutInProgress(setsXreps)}")
+        Log.d("WorkoutActivity", "Finishing workout activity ${workoutHistory.workout.workoutHistoryId} with sets: $setsXreps\nResumed?: ${workoutViewModel.resumed}\nWorkoutInProgress?: ${workoutInProgress(setsXreps)}")
 
         // Cancelled
         if (workoutViewModel.resumed && !workoutInProgress(setsXreps)) {
@@ -129,7 +141,7 @@ class WorkoutActivity : AppCompatActivity() {
         else if (workoutViewModel.resumed && workoutInProgress(setsXreps)) {
             Log.d("WorkoutActivity", "Resumed workout continued: started workout history exists and positive rep values were found.\nSaving started workout history to DB...")
             // Update WorkoutHistory in DB
-            workoutViewModel.updateWorkoutHistoryComplete(workoutHistory)
+            workoutViewModel.updateWorkoutSetHistory(getNewWorkoutHistoryComplete(workoutHistory, setsXreps))
 
             // Send back over the resumed workoutHistoryId in intent
             val resumedIntent = Intent(this, HomeActivity::class.java)
@@ -163,18 +175,39 @@ class WorkoutActivity : AppCompatActivity() {
     }
 
     private fun getNewExercises(exercises: List<ExerciseHistoryComplete>, setsXreps: MutableList<MutableList<Int>>): List<ExerciseHistoryComplete> {
-        return (exercises.mapIndexed { index, exercise ->
+        return (exercises.mapIndexed { i, exercise ->
             ExerciseHistoryComplete(
                 exercise = exercise.exercise,
-                setsXreps = setsXreps[index].map {
+                setsXreps = exercise.setsXreps.mapIndexed { j, set ->
                     ExerciseSetHistory(
+                        exerciseSetHistoryId = set.exerciseSetHistoryId,
                         workoutHistoryId = 0,
                         exerciseHistoryId = 0,
-                        setNumber = index,
-                        repsDone = it
+                        setNumber = set.setNumber,
+                        repsDone = setsXreps[i][j]
                     )
                 }
             )
         })
+    }
+
+    private fun getNewWorkoutHistoryComplete(workout: WorkoutHistoryComplete, setsXreps: MutableList<MutableList<Int>>): WorkoutHistoryComplete {
+        return WorkoutHistoryComplete(
+            workout = workout.workout,
+            exercises = workout.exercises.mapIndexed { i, exercise ->
+                ExerciseHistoryComplete(
+                    exercise = exercise.exercise,
+                    setsXreps = exercise.setsXreps.mapIndexed { j, set ->
+                        ExerciseSetHistory(
+                            exerciseSetHistoryId = set.exerciseSetHistoryId,
+                            workoutHistoryId = workout.workout.workoutHistoryId,
+                            exerciseHistoryId = exercise.exercise.exerciseHistoryId,
+                            setNumber = set.setNumber,
+                            repsDone = setsXreps[i][j]
+                        )
+                    }
+                )
+            }
+        )
     }
 }

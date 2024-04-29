@@ -69,8 +69,10 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
 
     fun getStartedWorkoutHistory(id: Long) {
         viewModelScope.launch(Dispatchers.IO) {
-            val res = async { stronkLiftsDao.getWorkoutHistoryComplete(id) }
-            workoutLiveData.postValue(res.await())
+            val resDeferred = async { stronkLiftsDao.getWorkoutHistoryComplete(id) }
+            val res = resDeferred.await()
+            Log.d("WorkoutViewMode", "Got startedWorkoutHistory: $res")
+            workoutLiveData.postValue(res)
         }
     }
 
@@ -130,10 +132,20 @@ class WorkoutViewModel(application: Application): AndroidViewModel(application) 
         }
     }
 
-    fun updateWorkoutHistoryComplete(workouHistory: WorkoutHistoryComplete) {
+    fun updateWorkoutHistoryComplete(workoutHistory: WorkoutHistoryComplete) {
         viewModelScope.launch(Dispatchers.IO) {
-            workoutHistory?.let {
-                stronkLiftsDao.updateWorkoutHistoryComplete(workoutHistory!!)
+            stronkLiftsDao.updateWorkoutHistoryComplete(workoutHistory)
+        }
+    }
+
+    fun updateWorkoutSetHistory(workoutHistory: WorkoutHistoryComplete) {
+        viewModelScope.launch(Dispatchers.IO) {
+            workoutHistory.exercises.forEach { exercise ->
+                exercise.setsXreps.forEach {
+                    stronkLiftsDao.updateExerciseSetHistory(it)
+                    Log.d("WorkoutActivity", "Updating workout set history... $it")
+
+                }
             }
         }
     }
