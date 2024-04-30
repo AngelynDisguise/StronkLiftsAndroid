@@ -2,8 +2,6 @@ package com.example.project2_adomingo.database
 
 import android.content.Context
 import androidx.room.Database
-import androidx.room.Embedded
-import androidx.room.Relation
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
@@ -37,6 +35,14 @@ abstract class StronkLiftsDatabase : RoomDatabase() {
                 INSTANCE = instance
                 instance
             }
+        }
+
+        fun getDatabasePath(context: Context): String {
+            return context.getDatabasePath("stronklifts_database").absolutePath
+        }
+
+        fun resetInstance() {
+            INSTANCE = null
         }
     }
 }

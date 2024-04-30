@@ -5,7 +5,7 @@
     android:id="@+id/workout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".HomeActivity">
+    tools:context=".WorkoutActivity">
 
 
     <LinearLayout
@@ -25,9 +25,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:onClick="onClickHome"
             android:text="Back"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:onClick="onClickBack"/>
 
         <TextView
             android:id="@+id/workout_title"
@@ -47,7 +47,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:onClick="onClickHome"
+            android:onClick="onClickBack"
             android:text="Finish"
             android:textSize="12sp" />
 

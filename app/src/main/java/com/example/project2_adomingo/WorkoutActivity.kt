@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -38,7 +39,6 @@ class WorkoutActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_workout)
 
         /* Unpack intent */
@@ -113,6 +113,7 @@ class WorkoutActivity : AppCompatActivity() {
                 workoutHistory = it
             }
         }
+
     }
 
     private fun setWorkoutTitle(workoutName: String) {
@@ -127,7 +128,7 @@ class WorkoutActivity : AppCompatActivity() {
 
     }
 
-    fun onClickHome(view: View) {
+    fun onClickBack(view: View) {
         Log.d("WorkoutActivity", "Finishing workout activity ${workoutHistory.workout.workoutHistoryId} with sets: $setsXreps\nResumed?: ${workoutViewModel.resumed}\nWorkoutInProgress?: ${workoutInProgress(setsXreps)}")
 
         // Cancelled

@@ -40,6 +40,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    packaging {
+        resources {
+            excludes += "META-INF/*"
+        }
+    }
 }
 
 dependencies {
@@ -60,4 +66,14 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
+
+    // Guava fix
+    implementation("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava")
+
+    //Drive
+    implementation("com.google.android.gms:play-services-auth:18.0.0")
+    implementation ("com.google.http-client:google-http-client-gson:1.26.0")
+    implementation ("com.google.api-client:google-api-client-android:1.26.0")
+    implementation ("com.google.apis:google-api-services-drive:v3-rev136-1.25.0")
+
 }

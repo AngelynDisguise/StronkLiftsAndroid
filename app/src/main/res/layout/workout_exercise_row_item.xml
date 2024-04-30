@@ -36,7 +36,7 @@
             android:textAllCaps="false"
             android:textColor="#c30000"
             android:textSize="16sp"
-            android:onClick="onClickHome"/>
+            android:onClick="onClickBack"/>
 
     </LinearLayout>
 

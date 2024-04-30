@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/navigation_bar"
+        android:layout_margin="50dp"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/username_input_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit Username:"
+            android:labelFor="@id/edit_user_input"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/edit_user_input"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/back_up_button"/>
+        <EditText
+            android:id="@+id/edit_user_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toEndOf="@id/username_input_text"
+            app:layout_constraintBottom_toTopOf="@id/back_up_button"
+            android:autofillHints="bruh"
+            android:inputType="text" />
+        <Button
+            android:id="@+id/back_up_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Back up data on Google Drive"
+            android:textSize="12sp"
+            android:onClick="onBackUp"/>
+        <TextView
+            android:id="@+id/last_backed_up_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toEndOf="@id/back_up_button"
+            android:text="" />
+        <Button
+            android:id="@+id/import_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Import data from Google Drive"
+            android:textSize="12sp"
+            android:onClick="onImport"/>
+    </LinearLayout>
+
+
+    <include
+        layout="@layout/navigation_bar_layout"
+        android:id="@+id/navigation_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+</androidx.constraintlayout.widget.ConstraintLayout>
