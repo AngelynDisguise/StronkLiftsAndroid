@@ -37,12 +37,5 @@ abstract class StronkLiftsDatabase : RoomDatabase() {
             }
         }
 
-        fun getDatabasePath(context: Context): String {
-            return context.getDatabasePath("stronklifts_database").absolutePath
-        }
-
-        fun resetInstance() {
-            INSTANCE = null
-        }
     }
 }
